@@ -11,6 +11,10 @@ This is the download home of **RubyOS**: a whole operating system that runs in a
 - [RubyOS-v5.9.25.html](RubyOS-v5.9.25.html) — the latest version, right here in this repository. Download this file and open it in a browser to run RubyOS.
 - The file is the whole operating system **and** its full source code. You can read every line of it here on GitHub — nothing is hidden or compiled.
 
+## Ruby AI
+
+**Ruby AI** — Wyatt's AI assistant — is a separate download from RubyOS, with its own home in the [RubyAI folder](RubyAI/). That folder is where Ruby AI's source code will be published and where you will download Ruby AI itself when it's ready. It's in development now.
+
 ## About RubyOS
 
 RubyOS is a complete desktop-style operating system packed into a single HTML file (about 1.65 MB). It has:
@@ -53,5 +57,6 @@ Tips:
 
 ## Links
 
+- Ruby AI: [RubyAI folder](RubyAI/) in this repository
 - Update files repository: [Saturn1880/ruby-updater](https://github.com/Saturn1880/ruby-updater)
 - This repository: [Saturn1880/RubyOS-download-repository](https://github.com/Saturn1880/RubyOS-download-repository)
