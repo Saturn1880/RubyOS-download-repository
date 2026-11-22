@@ -1,4 +1,4 @@
-// Ruby Architecture v1.3 — core extracted from RubyAI.html
+// Ruby Architecture v1.4 — core extracted from RubyAI.html
 
 "use strict";
 /* ============================================================
@@ -109,26 +109,47 @@ const Zip = {
     return out;
   }
 };
+function fileDataURI(f){
+  if(f.type==="zip" && f.files){ const bytes=Zip.create(f.files); let bin=""; const CH=0x8000; for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); return "data:application/zip;base64,"+btoa(bin); }
+  return "data:"+(RubyFiles.extMime[f.type]||"text/plain")+";charset=utf-8,"+encodeURIComponent(f.content||"");
+}
 function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
-  try{ const url=URL.createObjectURL(RubyFiles.blobFor(f)); const a=document.createElement("a"); a.href=url; a.download=f.name; a.rel="noopener"; a.style.display="none"; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },1500); }
-  catch(e){ openFileInNewTab(f.id); } }
-function openFileInNewTab(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return; const url=URL.createObjectURL(RubyFiles.blobFor(f)); window.open(url,"_blank"); setTimeout(()=>URL.revokeObjectURL(url),60000); }
+  const a=document.createElement("a"); a.download=f.name; a.rel="noopener"; a.style.display="none";
+  try{ a.href=fileDataURI(f); }catch(e){ try{ a.href=URL.createObjectURL(RubyFiles.blobFor(f)); }catch(e2){} }
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1500);
+}
+function openFileInNewTab(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+  const a=document.createElement("a"); a.target="_blank"; a.rel="noopener"; a.style.display="none";
+  try{ a.href=URL.createObjectURL(RubyFiles.blobFor(f)); }catch(e){ a.href=fileDataURI(f); }
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1500);
+}
 function downloadCurrent(){ downloadFile(); }
+function cleanupPreviewDom(){ (window._pvStyles||[]).forEach(s=>{ try{s.remove()}catch(e){} }); window._pvStyles=[]; }
+function renderHtmlInto(container, htmlDoc){
+  cleanupPreviewDom(); container.innerHTML="";
+  const holder=document.createElement("div"); holder.id="pvHolder"; holder.style.cssText="min-height:60vh;background:#fff;color:#111;border-radius:10px;padding:6px;overflow:auto";
+  let parsed=null; try{ parsed=new DOMParser().parseFromString(htmlDoc,"text/html"); }catch(e){}
+  if(parsed && parsed.body){
+    window._pvStyles=[];
+    parsed.querySelectorAll("style").forEach(s=>{ const st=document.createElement("style"); st.textContent=s.textContent; document.head.appendChild(st); window._pvStyles.push(st); });
+    holder.innerHTML=parsed.body.innerHTML;
+    const scripts=[...holder.querySelectorAll("script")]; const codes=scripts.map(s=>s.textContent); scripts.forEach(s=>s.remove());
+    container.appendChild(holder);
+    codes.forEach(code=>{ if(!code.trim()) return; const sc=document.createElement("script"); sc.textContent=code; holder.appendChild(sc); });
+  } else { holder.textContent=htmlDoc; container.appendChild(holder); }
+}
 function openPreview(id){
   const f=RubyFiles.items[id]; if(!f) return; RubyFiles.currentPreviewId=id;
   document.getElementById("ovTitle").textContent="◆ "+f.name;
   const ov=document.getElementById("overlay"), fr=document.getElementById("ovFrame"), bd=document.getElementById("ovBody");
-  ov.classList.add("open");
-  if(f.type==="zip"){ fr.style.display="none"; bd.style.display="block"; renderZipView(f,bd); return; }
-  if(f.type==="html"||f.type==="svg"){ bd.style.display="none"; fr.style.display="block";
-    const htmlDoc = f.type==="svg" ? "<body style='margin:0;display:grid;place-items:center;background:#160005'>"+f.content+"</body>" : f.content;
-    try{ if(fr.dataset.blobUrl) URL.revokeObjectURL(fr.dataset.blobUrl); const u=URL.createObjectURL(new Blob([htmlDoc],{type:"text/html"})); fr.dataset.blobUrl=u; fr.removeAttribute("srcdoc"); fr.src=u; }
-    catch(e){ fr.removeAttribute("src"); fr.srcdoc=htmlDoc; }
-    fr.onload=()=>{ try{ const doc=fr.contentDocument; if(doc && (!doc.body || !doc.body.innerHTML.trim())){ fr.removeAttribute("src"); fr.srcdoc=htmlDoc; } }catch(err){ /* cross-origin blob doc: means it loaded fine */ } };
-  }
-  else { fr.style.display="none"; bd.style.display="block"; bd.innerHTML=""; const pre=document.createElement("pre"); pre.textContent=f.content; bd.appendChild(pre); }
+  ov.classList.add("open"); fr.style.display="none";
+  bd.style.display="block";
+  if(f.type==="zip"){ renderZipView(f,bd); return; }
+  if(f.type==="html"){ renderHtmlInto(bd, f.content); return; }
+  if(f.type==="svg"){ cleanupPreviewDom(); bd.innerHTML=""; const holder=document.createElement("div"); holder.style.cssText="min-height:60vh;display:grid;place-items:center;background:#160005;border-radius:10px"; holder.innerHTML=f.content; bd.appendChild(holder); return; }
+  cleanupPreviewDom(); bd.innerHTML=""; const pre=document.createElement("pre"); pre.textContent=f.content; bd.appendChild(pre);
 }
-function closePreview(){ document.getElementById("overlay").classList.remove("open"); RubyFiles.currentPreviewId=null; }
+function closePreview(){ cleanupPreviewDom(); document.getElementById("overlay").classList.remove("open"); RubyFiles.currentPreviewId=null; }
 function refreshPreviewIfOpen(f){ if(RubyFiles.currentPreviewId===f.id && document.getElementById("overlay").classList.contains("open")) openPreview(f.id); }
 function renderZipView(f,container){
   container.innerHTML=""; const title=document.createElement("div"); title.innerHTML="<h2 style='margin:4px 0'>📦 Inside "+f.name+"</h2><p class='small'>Click any file inside to preview it. Or download the whole ZIP with the button above.</p>"; container.appendChild(title);
@@ -188,7 +209,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.3)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.4)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
