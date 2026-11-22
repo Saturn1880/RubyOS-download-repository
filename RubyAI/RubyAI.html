@@ -31,7 +31,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
 </style></head><body>
-<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.5</div></div>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.6</div></div>
 <div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
 <div class="layout"><aside id="side">
 <h3>💬 Chats</h3>
@@ -260,10 +260,131 @@ function renderFileCard(f){ if(window.RubySettings && !RubySettings.data.fileCar
 }
 function maybeRenderLastFile(beforeId){ const f=RubyFiles.last(); if(f && f.id!==beforeId) renderFileCard(f); }
 
-function safeMath(expr){
-  const clean = expr.replace(/[^0-9+\-*/(). %^]/g,"").trim(); if(!clean || !/[0-9]/.test(clean)) return null;
-  try{ const js = clean.replace(/\^/g,"**"); const v = Function('"use strict"; return ('+js+')')(); return (typeof v==="number" && isFinite(v)) ? v : null; }catch(e){ return null; }
+/* ===== RubyMath v2 — full redesign: exact fractions + real parser =====
+   Understands: 12*8, 12 × 8, 12 x 8, "12 times 8", "divide 100 by 4",
+   fractions (1/2 + 1/3 = 5/6 exactly), mixed numbers (1 1/2), decimals,
+   % of, fraction of, squared/cubed, square roots, factorials, brackets,
+   order of operations, averages, and number words (five times six). */
+function bgcd(a,b){ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ [a,b]=[b,a%b]; } return a||1n; }
+class Frac {
+  constructor(n,d=1n){ if(d===0n) throw new Error("div0"); if(d<0n){ n=-n; d=-d; } const g=bgcd(n,d); this.n=n/g; this.d=d/g; }
+  static fromDecimal(s){ if(s.includes(".")){ const [a,b]=s.split("."); const den=10n**BigInt(b.length); return new Frac(BigInt(a||"0")*den + (a.startsWith("-")?-1n:1n)*BigInt(b||"0"), den); } return new Frac(BigInt(s)); }
+  add(o){ return new Frac(this.n*o.d+o.n*this.d, this.d*o.d); } sub(o){ return new Frac(this.n*o.d-o.n*this.d, this.d*o.d); }
+  mul(o){ return new Frac(this.n*o.n, this.d*o.d); } div(o){ if(o.n===0n) throw new Error("div0"); return new Frac(this.n*o.d, this.d*o.n); }
+  neg(){ return new Frac(-this.n, this.d); }
+  pow(k){ if(k>=0n) return new Frac(this.n**k, this.d**k); return new Frac(this.d**(-k), this.n**(-k)); }
+  toNumber(){ return Number(this.n)/Number(this.d); }
+  isSquare(){ const s=x=>{ if(x<0n) return null; const r=BigInt(Math.round(Math.sqrt(Number(x)))); return r*r===x?r:null; }; const a=s(this.n), b=s(this.d); return (a!==null&&b!==null)?new Frac(a,b):null; }
+  toString(){ if(this.d===1n) return this.n.toString(); const neg=this.n<0n; const an=neg?-this.n:this.n;
+    if(an>this.d){ const whole=an/this.d, rem=an%this.d; if(rem===0n) return (neg?"-":"")+whole.toString(); return `${neg?"-":""}${whole} ${rem}/${this.d} (${this.n}/${this.d})`; }
+    return `${this.n}/${this.d}`; }
 }
+const RubyMath = {
+  numWords:{zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90},
+  wordsToNumbers(s){ // "twenty five" -> 25, "one hundred and five" -> 105 (simple, for maths phrases)
+    return s.replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and|point)\b/g, (m)=>{
+      if(m==="and") return "§and§"; if(m==="point") return "§point§"; if(m==="hundred") return "§hundred§"; if(m==="thousand") return "§thousand§"; return "§"+this.numWords[m]+"§";
+    }).replace(/§(\d+)§(?:§and§)?§hundred§(?:§and§)?(?:§(\d+)§)?/g, (m,a,b)=>String(Number(a)*100+(b?Number(b):0)))
+      .replace(/§(\d+)§§thousand§/g, (m,a)=>String(Number(a)*1000))
+      .replace(/§(\d+)§§point§§(\d+)§/g, (m,a,b)=>a+"."+b)
+      .replace(/§(\d+)§\s+§(\d+)§/g, (m,a,b)=>String(Number(a)+Number(b)))
+      .replace(/§(\d+)§/g, "$1").replace(/§[a-z]+§/g," ");
+  },
+  normalise(raw){
+    let s = " "+raw.toLowerCase().trim()+" ";
+    s = s.replace(/\bmultiply\s+([\d\s.()/]+?)\s+by\s+([\d\s.()/]+?)\s*(?=\?|$|\s=)/, " $1 * $2 ");
+    s = s.replace(/\bdivide\s+([\d\s.()/]+?)\s+by\s+([\d\s.()/]+?)\s*(?=\?|$|\s=)/, " $1 / $2 ");
+    s = s.replace(/\badd\s+([\d\s.()/]+?)\s+and\s+([\d\s.()/]+?)\s*(?=\?|$)/, " $1 + $2 ");
+    s = s.replace(/\bsubtract\s+([\d\s.()/]+?)\s+from\s+([\d\s.()/]+?)\s*(?=\?|$)/, " $2 - $1 ");
+    s = s.replace(/(\d+\s*\/\s*\d+)\s+divided by\s+(\d+\s*\/\s*\d+)/g, " (($1) / ($2)) ");
+    s = s.replace(/\bsimplify\b/g, " ").replace(/:/g, " ");
+    s = s.replace(/×/g," * ").replace(/÷/g," / ").replace(/−|–/g,"-");
+    s = this.wordsToNumbers(s);
+    s = s.replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (m,a,b,c)=>`((${a}*${c}+${b})/${c})`); // mixed number 1 1/2
+    s = s.replace(/\bsquare root of\b/g, " sqrt(").replace(/\bsqrt of\b/g, " sqrt(");
+    if(s.includes("sqrt(") && !s.trim().endsWith(")")) s = s + ")"; // sqrt of 16 -> sqrt( 16 ) approx: close at end
+    s = s.replace(/\bsquared\b/g, "^2").replace(/\bcubed\b/g, "^3");
+    s = s.replace(/\bdivided by\b/g, " / ").replace(/\bmultiplied by\b/g, " * ").replace(/\btimes\b/g, " * ")
+         .replace(/\bplus\b/g, " + ").replace(/\bminus\b/g, " - ").replace(/\bsubtract\b/g, " - ")
+         .replace(/\bover\b/g, " / ").replace(/\bpercent\b/g, "%").replace(/\bper cent\b/g, "%");
+    s = s.replace(/(\d)\s*x\s*(\d)/g, "$1 * $2"); // 12 x 8
+    s = s.replace(/\bof\b/g, " * "); // 3/4 of 20, 50% of 200 (only reached in maths context)
+    s = s.replace(/^(.*?\b)(what is|what's|calculate|calc|compute|solve|how much is|how many is|work out|tell me)\b/g, " ");
+    s = s.replace(/equals?|is it|\?|=|please/g, " ");
+    return s.trim();
+  },
+  tokenise(s){
+    const toks=[]; let i=0;
+    while(i<s.length){ const c=s[i];
+      if(/\s/.test(c)){ i++; continue; }
+      if(/[0-9.]/.test(c)){ let j=i; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num", v:s.slice(i,j)}); i=j; continue; }
+      if("+-*/^%!(),".includes(c)){ toks.push({t:c}); i++; continue; }
+      if(/[a-z]/.test(c)){ let j=i; while(j<s.length&&/[a-z]/.test(s[j])) j++; toks.push({t:"fn", v:s.slice(i,j)}); i=j; continue; }
+      throw new Error("badchar "+c);
+    }
+    return toks;
+  },
+  parse(toks){ // -> AST
+    let pos=0; const peek=()=>toks[pos], next=()=>toks[pos++];
+    function parseExpr(){ let n=parseTerm(); while(peek()&&(peek().t==="+"||peek().t==="-")){ const op=next().t; n={k:"bin",op,l:n,r:parseTerm()}; } return n; }
+    function parseTerm(){ let n=parseFactor(); while(peek()&&(peek().t==="*"||peek().t==="/")){ const op=next().t; n={k:"bin",op,l:n,r:parseFactor()}; } return n; }
+    function parseFactor(){ let n=parseUnary(); while(peek()&&peek().t==="^"){ next(); n={k:"bin",op:"^",l:n,r:parseUnary()}; } return n; }
+    function parseUnary(){ if(peek()&&peek().t==="-"){ next(); return {k:"neg", x:parseUnary()}; } if(peek()&&peek().t==="+"){ next(); return parseUnary(); } return parsePostfix(); }
+    function parsePostfix(){ let n=parseAtom(); while(peek()&&(peek().t==="%"||peek().t==="!")){ const op=next().t; n={k:op==="%"?"pct":"fact", x:n}; } return n; }
+    function parseAtom(){ const tk=next(); if(!tk) throw new Error("empty");
+      if(tk.t==="num") return {k:"num", v:tk.v};
+      if(tk.t==="("){ const n=parseExpr(); if(!peek()||next().t!==")") throw new Error("paren"); return n; }
+      if(tk.t==="fn"){ if(tk.v==="pi") return {k:"num", v:"3.141592653589793"}; if(tk.v==="e") return {k:"num", v:"2.718281828459045"};
+        if(!peek()||next().t!=="(") throw new Error("fnparen"); const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("fnparen2"); return {k:"fn", v:tk.v, x:arg}; }
+      throw new Error("atom "+tk.t); }
+    const ast=parseExpr(); if(pos!==toks.length) throw new Error("leftover"); return ast;
+  },
+  evalExact(node){
+    switch(node.k){
+      case "num": return Frac.fromDecimal(node.v);
+      case "neg": return this.evalExact(node.x).neg();
+      case "pct": return this.evalExact(node.x).div(new Frac(100n));
+      case "fact": { const v=this.evalExact(node.x); if(v.d!==1n||v.n<0n||v.n>170n) throw new Error("fact"); let r=1n; for(let i=2n;i<=v.n;i++) r*=i; return new Frac(r); }
+      case "fn": { const v=this.evalExact(node.x);
+        if(node.v==="sqrt"){ const sq=v.isSquare(); if(sq) return sq; throw new Error("irrational"); }
+        if(node.v==="abs") return v.n<0n?v.neg():v; throw new Error("fn"); }
+      case "bin": { const a=this.evalExact(node.l), b=this.evalExact(node.r);
+        if(node.op==="+") return a.add(b); if(node.op==="-") return a.sub(b); if(node.op==="*") return a.mul(b); if(node.op==="/") return a.div(b);
+        if(node.op==="^"){ if(b.d!==1n) throw new Error("pow"); return a.pow(b.n); } throw new Error("op"); }
+    } throw new Error("eval");
+  },
+  evalFloat(node){
+    switch(node.k){
+      case "num": return parseFloat(node.v);
+      case "neg": return -this.evalFloat(node.x);
+      case "pct": return this.evalFloat(node.x)/100;
+      case "fact": { const v=this.evalFloat(node.x); let r=1; for(let i=2;i<=v;i++) r*=i; return r; }
+      case "fn": { const v=this.evalFloat(node.x); if(node.v==="sqrt") return Math.sqrt(v); if(node.v==="abs") return Math.abs(v); if(node.v==="round") return Math.round(v); if(node.v==="floor") return Math.floor(v); if(node.v==="ceil") return Math.ceil(v); throw new Error("fn"); }
+      case "bin": { const a=this.evalFloat(node.l), b=this.evalFloat(node.r);
+        if(node.op==="+") return a+b; if(node.op==="-") return a-b; if(node.op==="*") return a*b; if(node.op==="/"){ if(b===0) throw new Error("div0"); return a/b; } if(node.op==="^") return Math.pow(a,b); throw new Error("op"); }
+    } throw new Error("eval");
+  },
+  looksMathy(raw){ const s=raw.toLowerCase(); if(!/(\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)/.test(s)) return false;
+    return /[+\-*/^×÷%=]|\b(times|divide|divided|multiply|multiplied|plus|minus|add|subtract|percent|square|sqrt|root|fraction|average|mean|sum|difference|product|quotient|half|quarter|of)\b/.test(s) || /^\s*(what is|calculate|calc|solve|compute|how much is)\s+[\d(]/.test(s) || /^\s*[\d(]/.test(s); },
+  trySolve(raw){
+    const low=raw.toLowerCase();
+    // averages / sums of lists
+    let m = low.match(/(?:average|mean) of ([0-9.,\sand]+)/); 
+    if(m){ const nums=m[1].split(/,|and/).map(x=>parseFloat(x)).filter(x=>!isNaN(x)); if(nums.length>1){ const avg=nums.reduce((a,b)=>a+b,0)/nums.length; return `The average of ${nums.join(", ")} is ${this.fmtFloat(avg)}  (added together = ${this.fmtFloat(nums.reduce((a,b)=>a+b,0))}, divided by ${nums.length}).`; } }
+    if(!this.looksMathy(raw)) return null;
+    try{
+      const norm=this.normalise(raw); if(!norm || !/\d/.test(norm)) return null;
+      const ast=this.parse(this.tokenise(norm));
+      try{ const f=this.evalExact(ast); const dec=f.toNumber(); const fs=f.toString();
+        return fs.includes("/") ? `${this.prettyExpr(raw)} = ${fs}  ≈ ${this.fmtFloat(dec)}` : `${this.prettyExpr(raw)} = ${fs}`;
+      }catch(e){ if(e.message==="div0") return "That one divides by zero — and dividing by zero isn't allowed in maths, so there's no answer for it.";
+        const v=this.evalFloat(ast); if(!isFinite(v)) return null; return `${this.prettyExpr(raw)} = ${this.fmtFloat(v)}`; }
+    }catch(e){ if(e.message==="div0") return "That one divides by zero — and dividing by zero isn't allowed in maths, so there's no answer for it."; return null; }
+  },
+  prettyExpr(raw){ return raw.trim().replace(/\?+$/,""); },
+  fmtFloat(v){ if(Number.isInteger(v)) return String(v); return String(Math.round(v*1e10)/1e10); }
+};
+function safeMath(expr){ const r=RubyMath.trySolve("calculate "+expr); if(!r) return null; const m=r.match(/= (.+?)(?:  |$)/); if(!m) return null; const n=parseFloat(m[1]); return isNaN(n)?null:n; }
 function tokenize(t){ return t.toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean); }
 const RubyBrain = {
   reply(raw){
@@ -296,7 +417,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.5)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.6)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -335,9 +456,8 @@ const RubyBrain = {
     if(/(write|make|create|code|build).*(code|python|javascript|html|program|app|website|game|calculator|todo)/.test(low) || /^code /.test(low)){
       const g = CodeGen.generate(t); const fname = g.lang==="html" ? (CodeGen.topic(low)==="flappy"?"flappy-ruby.html":"ruby-page.html") : g.lang==="python" ? "ruby-code.py" : "ruby-code.js"; RubyFiles.create(fname, g.code); return `Here's working ${g.lang} code for that — and I also made it into a real file for you (see the file card below: open it here, or download it):\n\n\`\`\`${g.lang}\n${g.code}\n\`\`\`\n\nWant me to change it, explain any line, or make a different version?`;
     }
-    // Math
-    if(/^(calculate|calc|what is|solve|compute)\s+/.test(low) || /^[0-9]/.test(low)){ const expr = low.replace(/^(calculate|calc|what is|solve|compute)\s+/,"").replace(/=?\??$/,""); const v=safeMath(expr); if(v!==null) return `${expr.trim()} = ${Math.round(v*1e10)/1e10}`; }
-    const bare = safeMath(low.replace(/\?$/,"")); if(bare!==null && /[+\-*/^]/.test(low)) return `That works out to ${Math.round(bare*1e10)/1e10}.`;
+    // Math (full RubyMath engine — runs before Knowledge so "what is 5 times 6" is maths, not a knowledge question)
+    const mathResult = RubyMath.trySolve(t); if(mathResult) return mathResult;
     // Knowledge explanations
     for(const k in Knowledge){ if(new RegExp("\\b"+k+"\\b").test(low)) return Knowledge[k]; }
     if(/explain|what is|what are|how does|how do/.test(low)){
