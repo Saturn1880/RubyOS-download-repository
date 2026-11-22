@@ -1,4 +1,4 @@
-// Ruby Architecture v1.4 — core extracted from RubyAI.html
+// Ruby Architecture v1.5 — core extracted from RubyAI.html
 
 "use strict";
 /* ============================================================
@@ -43,7 +43,7 @@ const CodeGen = {
 const cv=document.getElementById('c'),x=cv.getContext('2d');let y=220,v=0,pipes=[],score=0,dead=false,frame=0;
 function flap(){ if(dead){y=220;v=0;pipes=[];score=0;dead=false;} v=-8; }
 cv.onclick=flap; document.onkeydown=e=>{if(e.code==='Space'){e.preventDefault();flap();}};
-function loop(){ frame++; v+=0.45; y+=v;
+function loop(){ if(!x) return; frame++; v+=0.45; y+=v;
  if(frame%95===0) pipes.push({px:360,gap:110+Math.random()*160});
  x.clearRect(0,0,360,480); x.fillStyle='#e0112b';
  for(const p of pipes){ p.px-=2.4; x.fillRect(p.px,0,52,p.gap); x.fillRect(p.px,p.gap+130,52,480); if(p.px===90) score++; if(52>p.px&&20<p.px+52&&(y<p.gap||y>p.gap+130)) dead=true; }
@@ -113,10 +113,22 @@ function fileDataURI(f){
   if(f.type==="zip" && f.files){ const bytes=Zip.create(f.files); let bin=""; const CH=0x8000; for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); return "data:application/zip;base64,"+btoa(bin); }
   return "data:"+(RubyFiles.extMime[f.type]||"text/plain")+";charset=utf-8,"+encodeURIComponent(f.content||"");
 }
-function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+function rubyToast(msg, ms){ const t=document.getElementById("toast"); if(!t) return; t.textContent=msg; t.style.display="block"; clearTimeout(window._toastTimer); window._toastTimer=setTimeout(()=>{ t.style.display="none"; }, ms||4200); }
+async function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+  // 1) Real Save dialog (Edge/Chrome) — a genuine save the browser shows you
+  if(window.showSaveFilePicker){
+    try{ rubyToast("💾 Pick where to save "+f.name+"…");
+      const handle=await window.showSaveFilePicker({ suggestedName:f.name });
+      const writable=await handle.createWritable(); await writable.write(RubyFiles.blobFor(f)); await writable.close();
+      rubyToast("✅ Saved "+f.name+" — check the folder you picked."); return;
+    }catch(e){ if(e && e.name==="AbortError"){ rubyToast("Save cancelled — nothing downloaded."); return; } /* any other error: fall through to link methods */ }
+  }
+  // 2) Blob link, 3) data-file link
   const a=document.createElement("a"); a.download=f.name; a.rel="noopener"; a.style.display="none";
-  try{ a.href=fileDataURI(f); }catch(e){ try{ a.href=URL.createObjectURL(RubyFiles.blobFor(f)); }catch(e2){} }
-  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1500);
+  let blobUrl=null;
+  try{ blobUrl=URL.createObjectURL(RubyFiles.blobFor(f)); a.href=blobUrl; }catch(e){ try{ a.href=fileDataURI(f); }catch(e2){} }
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); if(blobUrl) URL.revokeObjectURL(blobUrl); },1500);
+  rubyToast("⬇ Downloading "+f.name+" — check your browser's downloads bar. If nothing appears, your viewer is blocking downloads: open RubyAI.html directly in Edge/Chrome and try there.", 7000);
 }
 function openFileInNewTab(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
   const a=document.createElement("a"); a.target="_blank"; a.rel="noopener"; a.style.display="none";
@@ -209,7 +221,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.4)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.5)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }

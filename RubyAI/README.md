@@ -17,6 +17,8 @@
 ## What Ruby can do (v1.1)
 Chat • Python/JavaScript/HTML code generation • Run JavaScript • Calculator • Long-term memory (facts, taught knowledge, notes, your name) • Explanations • Stories/essays/plans • Date/time • Jokes • Export/clear memory
 
+**Download rebuild (v1.5):** Download now opens the browser's real **Save dialog** first (Edge/Chrome File System Access API) so you pick where the file goes and the browser visibly saves it; if that's unavailable it falls back to blob/data download links, and Ruby now shows an on-screen message saying exactly what happened (saved / cancelled / downloading — check your downloads bar) instead of failing silently.
+
 **Preview/download rebuild (v1.4):** the live preview no longer uses an iframe at all — Ruby builds the page right into her own screen (nothing for a browser/viewer to block, no more white screen), runs its scripts, and cleans up when you close it. Downloads are now delivered as a direct data-file link placed in the page (blob method kept as backup), and New Tab clicks a real target=_blank link instead of a popup call.
 
 **Preview/download fix (v1.3):** downloads now use a proper in-page download link (required by Edge/Firefox — a hidden off-page link silently does nothing in some browsers), the live preview loads via a real file URL with an automatic fallback, and every file card + the preview bar gained a **↗ New tab** button as another way to open/save a file.
