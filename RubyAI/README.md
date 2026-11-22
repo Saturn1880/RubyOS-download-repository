@@ -1,21 +1,27 @@
-# Ruby AI
+# ◆ Ruby AI — Pure Local AI Assistant
 
-**Ruby AI** is Wyatt's own AI assistant — a separate project from RubyOS, with its own home right here.
+**Ruby AI** is a standalone AI assistant that runs **entirely on your device** in one HTML file.
 
-This folder is where Ruby AI lives:
+- ❌ No external AI APIs (no Claude, ChatGPT, Gemini, OpenAI)
+- ❌ No API keys
+- ❌ No pretrained third-party AI models
+- ✅ Its own **Ruby Architecture** (see ARCHITECTURE.md)
+- ✅ Works on **phone and laptop/computer** — just open the file in a browser
+- ✅ Ruby-red themed, named **Ruby**
 
-- **Source code** — Ruby AI's full source code will be published in this folder. Like RubyOS, it will be open to read: nothing hidden, nothing compiled.
-- **Download** — when a version of Ruby AI is ready, its file will be posted here so anyone can download it and run it on its own, without needing RubyOS.
+## Download & use
+1. Download `RubyAI.html`
+2. Open it in any browser (Chrome, Edge, Safari, Firefox)
+3. Ask Ruby to write code, do maths, explain topics, write stories, make plans, take notes — or teach her something and she'll remember it on that device.
 
-## Status
+## What Ruby can do
+Chat • Python/JavaScript/HTML code generation • Run JavaScript • Calculator • Long-term memory (facts, taught knowledge, notes, your name) • Explanations • Stories/essays/plans • Date/time • Jokes • Export/clear memory
 
-🚧 **In development.** Ruby AI is being built now (Wyatt is creating it with ChatGPT's help). There is no download yet — this page is its home so everything lands here the moment it's ready.
+## Honest limits
+Ruby is NOT a trained large language model like Claude or ChatGPT — no single file built without training data/compute can honestly be that. Ruby never pretends otherwise and never fakes an answer: if she doesn't know something, she says so and lets you **teach** her (`teach: topic is answer`), which she then remembers. That honesty + teachability is the Ruby Architecture idea.
 
-## Ruby AI and RubyOS
+## Build your own AI on Ruby Architecture
+Copy `src/ruby-core.js`, replace the Knowledge and CodeGen modules with your own, keep Memory + Intent + Planner. Your AI, your name, your theme — powered by Ruby Architecture. See ARCHITECTURE.md.
 
-Ruby AI started as an app inside RubyOS. In the current RubyOS (5.9.25) that built-in app is switched off for now. Ruby AI is being rebuilt as its own separate thing, and this is where it will be released.
-
-## Links
-
-- RubyOS download repository: [Saturn1880/RubyOS-download-repository](https://github.com/Saturn1880/RubyOS-download-repository)
-- Update files repository: [Saturn1880/ruby-updater](https://github.com/Saturn1880/ruby-updater)
+## License
+MIT — free to use, copy, modify and share. Keep the Ruby Architecture credit.
