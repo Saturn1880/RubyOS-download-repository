@@ -17,6 +17,8 @@
 ## What Ruby can do (v1.1)
 Chat • Python/JavaScript/HTML code generation • Run JavaScript • Calculator • Long-term memory (facts, taught knowledge, notes, your name) • Explanations • Stories/essays/plans • Date/time • Jokes • Export/clear memory
 
+**Preview/download fix (v1.3):** downloads now use a proper in-page download link (required by Edge/Firefox — a hidden off-page link silently does nothing in some browsers), the live preview loads via a real file URL with an automatic fallback, and every file card + the preview bar gained a **↗ New tab** button as another way to open/save a file.
+
 **Chats, Settings, Memory & Sync (v1.2):** sidebar Chats menu with all your previous chats + ＋ New Chat • 🗑 Trash mode — tick chats (or Select all), hit Delete, confirm Yes/No, Yes deletes forever • ⚙️ Settings menu — on/off switches (memory, file cards, live preview, Enter-to-send, animations), Create Account, and Sync with Ruby AI Desktop (account info + password form; password stored only as a hash on-device — Ruby has no cloud server yet, so sync links the account on this device) • 🧠 Memory menu — export chat memory (all chats + memory as JSON), show/clear memory, delete old chats.
 
 **Real files (v1.1):** every code/file answer comes with a file card — **Open & use it here** (HTML opens inside Ruby AI in a live preview you can click around in, ✕ to close; ask for changes like 'make the background blue' and the open preview updates live), **Download** (the actual .html/.xml/.py/.js/.txt/etc file), and **ZIP support** (Ruby makes real .zip files; click 'See what's inside' to list and preview the files inside before downloading).

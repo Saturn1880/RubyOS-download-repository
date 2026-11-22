@@ -1,4 +1,4 @@
-// Ruby Architecture v1.2 — core extracted from RubyAI.html
+// Ruby Architecture v1.3 — core extracted from RubyAI.html
 
 "use strict";
 /* ============================================================
@@ -109,7 +109,10 @@ const Zip = {
     return out;
   }
 };
-function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return; const a=document.createElement("a"); a.href=URL.createObjectURL(RubyFiles.blobFor(f)); a.download=f.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+  try{ const url=URL.createObjectURL(RubyFiles.blobFor(f)); const a=document.createElement("a"); a.href=url; a.download=f.name; a.rel="noopener"; a.style.display="none"; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); },1500); }
+  catch(e){ openFileInNewTab(f.id); } }
+function openFileInNewTab(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return; const url=URL.createObjectURL(RubyFiles.blobFor(f)); window.open(url,"_blank"); setTimeout(()=>URL.revokeObjectURL(url),60000); }
 function downloadCurrent(){ downloadFile(); }
 function openPreview(id){
   const f=RubyFiles.items[id]; if(!f) return; RubyFiles.currentPreviewId=id;
@@ -117,7 +120,12 @@ function openPreview(id){
   const ov=document.getElementById("overlay"), fr=document.getElementById("ovFrame"), bd=document.getElementById("ovBody");
   ov.classList.add("open");
   if(f.type==="zip"){ fr.style.display="none"; bd.style.display="block"; renderZipView(f,bd); return; }
-  if(f.type==="html"||f.type==="svg"){ bd.style.display="none"; fr.style.display="block"; fr.srcdoc = f.type==="svg" ? "<body style='margin:0;display:grid;place-items:center;background:#160005'>"+f.content+"</body>" : f.content; }
+  if(f.type==="html"||f.type==="svg"){ bd.style.display="none"; fr.style.display="block";
+    const htmlDoc = f.type==="svg" ? "<body style='margin:0;display:grid;place-items:center;background:#160005'>"+f.content+"</body>" : f.content;
+    try{ if(fr.dataset.blobUrl) URL.revokeObjectURL(fr.dataset.blobUrl); const u=URL.createObjectURL(new Blob([htmlDoc],{type:"text/html"})); fr.dataset.blobUrl=u; fr.removeAttribute("srcdoc"); fr.src=u; }
+    catch(e){ fr.removeAttribute("src"); fr.srcdoc=htmlDoc; }
+    fr.onload=()=>{ try{ const doc=fr.contentDocument; if(doc && (!doc.body || !doc.body.innerHTML.trim())){ fr.removeAttribute("src"); fr.srcdoc=htmlDoc; } }catch(err){ /* cross-origin blob doc: means it loaded fine */ } };
+  }
   else { fr.style.display="none"; bd.style.display="block"; bd.innerHTML=""; const pre=document.createElement("pre"); pre.textContent=f.content; bd.appendChild(pre); }
 }
 function closePreview(){ document.getElementById("overlay").classList.remove("open"); RubyFiles.currentPreviewId=null; }
@@ -139,7 +147,7 @@ function renderFileCard(f){ if(window.RubySettings && !RubySettings.data.fileCar
   if(f.type==="html"||f.type==="svg") mk("▶ Open & use it here", openPreview);
   else if(f.type==="zip") mk("📦 See what's inside", openPreview);
   else mk("👁 View", openPreview);
-  mk("⬇ Download", downloadFile);
+  mk("⬇ Download", downloadFile); mk("↗ New tab", openFileInNewTab);
   d.appendChild(row); c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 function maybeRenderLastFile(beforeId){ const f=RubyFiles.last(); if(f && f.id!==beforeId) renderFileCard(f); }
@@ -180,7 +188,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.2)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.3)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
