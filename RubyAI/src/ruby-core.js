@@ -1,4 +1,4 @@
-// Ruby Architecture v1.1 — core extracted from RubyAI.html
+// Ruby Architecture v1.2 — core extracted from RubyAI.html
 
 "use strict";
 /* ============================================================
@@ -12,7 +12,7 @@ const RubyMemory = {
   key:"ruby_ai_memory_v1",
   data:{facts:{}, taught:{}, notes:[], tasks:[], history:[], name:"", turns:0, created:Date.now()},
   load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r);}catch(e){} },
-  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} updateStats(); },
+  save(){ if(window.RubySettings && !RubySettings.data.memory) { updateStats(); return; } try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} updateStats(); },
   bytes(){ return (localStorage.getItem(this.key)||"").length; },
   remember(k,v){ this.data.facts[k.toLowerCase()]=v; this.save(); },
   learn(k,v){ this.data.taught[k.toLowerCase()]=v; this.save(); }
@@ -128,7 +128,7 @@ function renderZipView(f,container){
   if(!entries.length){ container.innerHTML+="<p>This ZIP looks empty.</p>"; return; }
   for(const e of entries){ const d=document.createElement("div"); d.className="zipitem"; d.textContent="📄 "+e.name+"  —  "+e.size+" bytes"; d.onclick=()=>{ const isHtml=/\.html?$/i.test(e.name); const tmp=RubyFiles.create(e.name.replace(/[^\w.\-]/g,"_"), typeof e.content==="string"?e.content:new TextDecoder().decode(e.content)); openPreview(tmp.id); }; container.appendChild(d); }
 }
-function renderFileCard(f){
+function renderFileCard(f){ if(window.RubySettings && !RubySettings.data.fileCards) return;
   const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="filecard";
   const icon = f.type==="zip"?"📦":(f.type==="html"?"🌐":"📄");
   d.innerHTML = icon+" <b></b><div class='small'></div>";
@@ -180,7 +180,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.1)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.2)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -243,10 +243,71 @@ const RubyBrain = {
     return `I heard you — and here's my best local take: I don't have a built-in answer for that exact thing yet, and I won't pretend an outside AI answered it, because Ruby runs purely on your device.\n\nWhat I CAN do right now with “${t.slice(0,80)}”:\n• Rephrase it as a code task (“write code to…”)\n• Ask me to explain a built-in topic (loops, functions, Python, HTML…)\n• Teach me the answer: teach: <topic> is <answer> — then I'll know it forever on this device\n\nThat honesty is part of the design: Ruby never makes up a fake “top-tier” answer.`;
   }
 };
+
+/* ===== v1.2: Chats, Settings, Account, Sync, Memory menu, Trash delete ===== */
+const RubyChats = {
+  key:"ruby_ai_chats_v1", data:{chats:[], activeId:null},
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r); }catch(e){} if(!this.data.chats.length) this.create("New chat"); if(!this.active()) this.data.activeId=this.data.chats[0].id; },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  create(title){ const c={id:"c"+Date.now()+"_"+Math.floor(Math.random()*9999), title:title||"New chat", created:Date.now(), messages:[]}; this.data.chats.unshift(c); this.data.activeId=c.id; this.save(); return c; },
+  active(){ return this.data.chats.find(c=>c.id===this.data.activeId) || null; },
+  addMessage(who,text){ const c=this.active(); if(!c) return; c.messages.push({who,text,at:Date.now()}); if(c.title==="New chat" && who==="user") c.title=text.slice(0,42); this.save(); },
+  deleteMany(ids){ const before=this.data.chats.length; this.data.chats=this.data.chats.filter(c=>!ids.includes(c.id)); if(!this.data.chats.length) this.create("New chat"); if(!this.active()) this.data.activeId=this.data.chats[0].id; this.save(); return before-this.data.chats.length; },
+  exportData(){ return {exportedAt:new Date().toISOString(), chats:this.data.chats, memory:RubyMemory.data}; }
+};
+const RubySettings = {
+  key:"ruby_ai_settings_v1",
+  data:{memory:true, fileCards:true, livePreview:true, enterSend:true, animations:true},
+  labels:{memory:"🧠 Long-term memory (Ruby remembers you)", fileCards:"📁 File cards & downloads", livePreview:"▶ Live HTML preview", enterSend:"⏎ Enter key sends message", animations:"✨ Animations"},
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=Object.assign(this.data, JSON.parse(r)); }catch(e){} },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} }
+};
+RubySettings.load();
+const RubyAccount = {
+  key:"ruby_ai_account_v1", data:null,
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r); }catch(e){} },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  async hash(text){ try{ const buf=await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ruby◆"+text)); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join(""); }catch(e){ let x=0; for(const ch of text) x=(x*31+ch.charCodeAt(0))>>>0; return "h"+x; } },
+  async create(user, pass){ this.data={user, passHash:await this.hash(pass), created:Date.now(), synced:false}; this.save(); return this.data; },
+  async check(user, pass){ if(!this.data) return false; return this.data.user===user && this.data.passHash===await this.hash(pass); }
+};
+RubyAccount.load();
+let deleteMode=false, pendingDelete=[];
+function openModal(id){ const m=document.getElementById(id); if(m) m.classList.add("open"); if(id==="memoryModal") updateMemModals(); if(id==="settingsModal"){ renderToggles(); renderAccount(); } }
+function closeModal(id){ const m=document.getElementById(id); if(m) m.classList.remove("open"); }
+function updateMemModals(){ const s=`Chats: <b>${RubyChats.data.chats.length}</b> • Messages: <b>${RubyChats.data.chats.reduce((a,c)=>a+c.messages.length,0)}</b><br>Facts: <b>${Object.keys(RubyMemory.data.facts).length}</b> • Taught: <b>${Object.keys(RubyMemory.data.taught).length}</b> • Notes: <b>${RubyMemory.data.notes.length}</b>`; const a=document.getElementById("memStats2"); if(a) a.innerHTML=s; }
+function renderChatList(){
+  const list=document.getElementById("chatList"); if(!list) return; list.innerHTML="";
+  for(const c of RubyChats.data.chats){ const d=document.createElement("div"); d.className="chatitem"+(c.id===RubyChats.data.activeId?" active":"");
+    if(deleteMode){ const box=document.createElement("input"); box.type="checkbox"; box.className="delBox"; box.dataset.id=c.id; d.appendChild(box); }
+    const s=document.createElement("span"); s.textContent="💬 "+c.title; s.title=c.title; d.appendChild(s);
+    const n=document.createElement("span"); n.className="small"; n.style.flex="none"; n.textContent=c.messages.length; d.appendChild(n);
+    d.onclick=(e)=>{ if(deleteMode) return; switchChat(c.id); };
+    list.appendChild(d); }
+  const dt=document.getElementById("delTools"); if(dt) dt.style.display=deleteMode?"flex":"none";
+  const tb=document.getElementById("trashBtn"); if(tb) tb.textContent=deleteMode?"🗑 Pick chats…":"🗑 Trash";
+}
+function switchChat(id){ RubyChats.data.activeId=id; RubyChats.save(); renderChatList(); renderActiveChat(); if(window.innerWidth<800) toggleSide&&document.getElementById("side").classList.remove("open"); }
+function renderActiveChat(){ const box=document.getElementById("chat"); if(!box) return; box.innerHTML=""; const c=RubyChats.active(); if(!c) return; for(const m of c.messages){ const d=document.createElement("div"); d.className="msg "+m.who; d.textContent=m.text; box.appendChild(d); } box.scrollTop=box.scrollHeight; }
+function newChat(){ RubyChats.create("New chat"); renderChatList(); renderActiveChat(); const box=document.getElementById("chat"); }
+function toggleDeleteMode(){ deleteMode=!deleteMode; renderChatList(); }
+function selectedChatIds(){ return [...document.querySelectorAll(".delBox")].filter(b=>b.checked).map(b=>b.dataset.id); }
+function selectAllChats(on){ document.querySelectorAll(".delBox").forEach(b=>b.checked=on); }
+function askDeleteSelected(){ const ids=selectedChatIds(); if(!ids.length){ alert("Tick at least one chat first — or tick Select all."); return; } pendingDelete=ids; document.getElementById("confirmText").textContent=`Are you sure you want to delete ${ids.length===1?"this chat":("these "+ids.length+" chats")}?`; openModal("confirmModal"); }
+function confirmDelete(){ RubyChats.deleteMany(pendingDelete); pendingDelete=[]; deleteMode=false; const sa=document.getElementById("selectAllBox"); if(sa) sa.checked=false; closeModal("confirmModal"); renderChatList(); renderActiveChat(); }
+function exportChatMemory(){ const blob=new Blob([JSON.stringify(RubyChats.exportData(),null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ruby-ai-chat-memory.json"; a.click(); }
+function renderToggles(){ const t=document.getElementById("toggles"); if(!t) return; t.innerHTML=""; for(const k in RubySettings.labels){ const row=document.createElement("div"); row.className="switchrow"; const l=document.createElement("span"); l.textContent=RubySettings.labels[k]; const box=document.createElement("input"); box.type="checkbox"; box.checked=!!RubySettings.data[k]; box.onchange=()=>{ RubySettings.data[k]=box.checked; RubySettings.save(); if(k==="memory"&&!box.checked) alert("Memory is off — Ruby will chat but won't save new memories on this device."); }; row.appendChild(l); row.appendChild(box); t.appendChild(row); } }
+function renderAccount(){ const a=document.getElementById("accountArea"); if(!a) return;
+  if(RubyAccount.data){ a.innerHTML=""; const p=document.createElement("p"); p.className="small"; p.textContent="Signed in on this device as: "+RubyAccount.data.user+(RubyAccount.data.synced?" • Sync: ON ◆":" • Sync: not synced yet"); a.appendChild(p); const b=document.createElement("button"); b.className="ghost"; b.textContent="Sign out"; b.onclick=()=>{ RubyAccount.data=null; RubyAccount.save(); renderAccount(); }; a.appendChild(b); }
+  else { a.innerHTML='<input type="text" id="accUser" placeholder="Choose a username or email"><input type="password" id="accPass" placeholder="Choose a password"><button style="width:100%" onclick="createAccount()">Create account</button><p class="small">Your account is created on this device — the password is stored only as a scrambled hash, never as plain text, and never sent anywhere.</p>'; }
+}
+async function createAccount(){ const u=document.getElementById("accUser").value.trim(), pw=document.getElementById("accPass").value; if(!u||pw.length<4){ alert("Pick a username and a password of at least 4 characters."); return; } await RubyAccount.create(u,pw); renderAccount(); alert("Account created ◆ Welcome, "+u); }
+async function doSync(){ const u=document.getElementById("syncUser").value.trim(), pw=document.getElementById("syncPass").value; const st=document.getElementById("syncStatus"); if(!u||!pw){ st.textContent="Please enter your account info and your password first."; return; } if(!RubyAccount.data){ st.textContent="No account on this device yet — create one above first, then sync."; return; } const ok=await RubyAccount.check(u,pw); if(!ok){ st.textContent="That account info / password doesn't match this device's Ruby account. Try again."; return; } RubyAccount.data.synced=true; RubyAccount.data.lastSync=Date.now(); RubyAccount.save(); renderAccount(); st.textContent="Synced ◆ This device is linked to Ruby AI Desktop as "+u+" ("+new Date().toLocaleTimeString()+"). Note: Ruby has no cloud server yet, so sync links the account on this device — your chats and memory stay stored here, ready for desktop sync when the Ruby server launches."; }
+
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function showMemoryText(){ const d=RubyMemory.data; let s="Here's what I remember on this device:\n"; s+= d.name?`• Your name: ${cap(d.name)}\n`:""; for(const k in d.facts) s+=`• ${k}: ${d.facts[k]}\n`; for(const k in d.taught) s+=`• (taught) ${k}: ${d.taught[k]}\n`; s+=`• Notes: ${d.notes.length} • Conversation turns: ${d.turns}`; if(!d.name && !Object.keys(d.facts).length && !Object.keys(d.taught).length) s+="\n(Nothing personal yet — teach me something!)"; return s; }
 function updateStats(){ const el=document.getElementById("memStats"); if(el) el.innerHTML=`Turns: <b>${RubyMemory.data.turns}</b><br>Facts: <b>${Object.keys(RubyMemory.data.facts).length}</b> • Taught: <b>${Object.keys(RubyMemory.data.taught).length}</b><br>Notes: <b>${RubyMemory.data.notes.length}</b><br>Memory saved on device: <b>${(RubyMemory.bytes()/1024).toFixed(2)} KB</b>`; }
-function addMsg(text,who){ const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="msg "+who; d.textContent=text; c.appendChild(d); c.scrollTop=c.scrollHeight; }
+function addMsg(text,who){ const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="msg "+who; d.textContent=text; c.appendChild(d); c.scrollTop=c.scrollHeight; if(!window._renderingChat){ RubyChats.addMessage(who==="user"?"user":"ruby", text); renderChatList(); } }
 function send(){ const i=document.getElementById("inp"); const v=i.value.trim(); if(!v)return; i.value=""; addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
 function ask(v){ addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
 function toggleSide(){ document.getElementById("side").classList.toggle("open"); }
@@ -254,4 +315,6 @@ function clearMemory(){ localStorage.removeItem(RubyMemory.key); RubyMemory.data
 function showMemory(){ addMsg(showMemoryText(),"ruby"); }
 function exportMemory(){ const blob=new Blob([JSON.stringify(RubyMemory.data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ruby-ai-memory.json"; a.click(); }
 updateStats();
-addMsg("Hello, I'm Ruby ◆ — now with real files: ask me to make something and you'll get a file card to open it right here or download it.\n\n — your pure local AI assistant.\n\nNo API keys. No Claude, ChatGPT or Gemini hiding inside. No internet AI calls. Everything I do runs in this one file, on your phone or laptop.\n\nAsk me to write code, do maths, explain something, write a story — or teach me something new and I'll remember it.","ruby");
+RubyChats.load();
+if(RubyChats.active() && RubyChats.active().messages.length){ window._renderingChat=true; renderActiveChat(); window._renderingChat=false; renderChatList(); }
+else { renderChatList(); addMsg("Hello, I'm Ruby ◆ — now with real files: ask me to make something and you'll get a file card to open it right here or download it.\n\n — your pure local AI assistant.\n\nNo API keys. No Claude, ChatGPT or Gemini hiding inside. No internet AI calls. Everything I do runs in this one file, on your phone or laptop.\n\nAsk me to write code, do maths, explain something, write a story — or teach me something new and I'll remember it.","ruby"); }
