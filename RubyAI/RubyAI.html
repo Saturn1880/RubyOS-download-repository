@@ -23,6 +23,10 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .small{font-size:13px;color:var(--mut)}
 .filecard{background:linear-gradient(180deg,#4a0013,#2a000a);border:1px solid var(--r2);border-radius:14px;padding:12px;margin:10px 0;max-width:85%}
 .filecard b{font-size:16px} .filecard .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.mic-live{background:linear-gradient(180deg,#ff0033,#8f0018)!important;animation:micPulse 1s infinite}
+@keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(255,46,77,.7)}70%{box-shadow:0 0 0 12px rgba(255,46,77,0)}100%{box-shadow:0 0 0 0 rgba(255,46,77,0)}}
+#voiceCaption{max-width:980px;width:100%;margin:0 auto;padding:0 14px;display:none}
+#voiceCaption .in{background:#3d0010;border:1px solid var(--r2);border-radius:10px;padding:8px 12px;color:var(--mut);font-size:14px}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#3d0010;border:1px solid var(--r2);color:var(--text);padding:11px 16px;border-radius:12px;z-index:99;display:none;max-width:92vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 #overlay{position:fixed;inset:0;background:rgba(10,0,3,.92);z-index:50;display:none;flex-direction:column}
 #overlay.open{display:flex} #ovBar{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#2a000a}
@@ -34,7 +38,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
 </style></head><body>
-<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.9 Media Studio</div></div>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.10 Media Studio</div></div>
 <div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
 <div class="layout"><aside id="side">
 <h3>💬 Chats</h3>
@@ -65,7 +69,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
   </select>
   <span id="modelHint">Quick answers • everyday tasks</span>
 </div>
-<div id="rubyStudioPanel" style="max-width:980px;width:100%;margin:0 auto;padding:10px 14px 0;display:flex;gap:7px;flex-wrap:wrap"><button class="ghost" onclick="RubyStudio.pickFiles()">📎 Add files</button><button class="ghost" onclick="RubyStudio.pickImages()">🖼 Add images</button><button class="ghost" onclick="RubyStudio.toggleMic()" id="rubyMicBtn">🎙 Microphone</button><button class="ghost" onclick="RubyStudio.openImageStudio()">🎨 Image studio</button><button class="ghost" onclick="RubyStudio.openMusicStudio()">🎵 Music studio</button><span class="small" id="rubyAttachStatus" style="align-self:center">Attach files, speak, or open a studio</span></div><div class="composer"><textarea id="inp" placeholder="Ask Ruby anything… attach files, images, or use the studios above" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&(!window.RubySettings||RubySettings.data.enterSend)){event.preventDefault();send()}"></textarea><button onclick="send()">Send ➤</button></div><input id="rubyFileInput" type="file" multiple style="display:none" onchange="RubyStudio.handleFiles(this.files)"><input id="rubyImageInput" type="file" accept="image/*" multiple style="display:none" onchange="RubyStudio.handleImages(this.files)"></main></div>
+<div id="rubyStudioPanel" style="max-width:980px;width:100%;margin:0 auto;padding:10px 14px 0;display:flex;gap:7px;flex-wrap:wrap"><button class="ghost" onclick="RubyStudio.pickFiles()">📎 Add files</button><button class="ghost" onclick="RubyStudio.pickImages()">🖼 Add images</button><button class="ghost" onclick="RubyVoice.toggle()" id="rubyMicBtn">🎙 Microphone</button><button class="ghost" onclick="RubyStudio.openImageStudio()">🎨 Image studio</button><button class="ghost" onclick="RubyStudio.openMusicStudio()">🎵 Music studio</button><span class="small" id="rubyAttachStatus" style="align-self:center">Attach files, speak, or open a studio</span></div><div id="voiceCaption"><div class="in">🎙 Listening… start talking</div></div><div class="composer"><button id="composerMicBtn" title="Talk to Ruby — your voice becomes text" onclick="RubyVoice.toggle()" style="min-width:52px">🎙</button><textarea id="inp" placeholder="Ask Ruby anything… attach files, images, or use the studios above" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&(typeof RubySettings==="undefined"||RubySettings.data.enterSend)){event.preventDefault();send()}"></textarea><button onclick="send()">Send ➤</button></div><input id="rubyFileInput" type="file" multiple style="display:none" onchange="RubyStudio.handleFiles(this.files)"><input id="rubyImageInput" type="file" accept="image/*" multiple style="display:none" onchange="RubyStudio.handleImages(this.files)"></main></div>
 <div id="overlay"><div id="ovBar"><span id="ovTitle" style="font-weight:800">Preview</span><span class="small" id="ovHint">Live preview — click around and use it. Ask Ruby for changes and watch them appear here.</span><span style="margin-left:auto"></span><button class="ghost" onclick="openFileInNewTab()">↗ Open in new tab</button><button class="ghost" onclick="downloadCurrent()">⬇ Download</button><button onclick="closePreview()">✕ Close</button></div><iframe id="ovFrame" sandbox="allow-scripts allow-modals allow-pointer-lock" style="display:none"></iframe><div id="ovBody" style="display:none"></div></div>
 
 <div id="toast"></div>
@@ -102,7 +106,7 @@ const RubyMemory = {
   key:"ruby_ai_memory_v1",
   data:{facts:{}, taught:{}, notes:[], tasks:[], history:[], name:"", turns:0, created:Date.now()},
   load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r);}catch(e){} },
-  save(){ if(window.RubySettings && !RubySettings.data.memory) { updateStats(); return; } try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} updateStats(); },
+  save(){ if(typeof RubySettings!=="undefined" && !RubySettings.data.memory) { updateStats(); return; } try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} updateStats(); },
   bytes(){ return (localStorage.getItem(this.key)||"").length; },
   remember(k,v){ this.data.facts[k.toLowerCase()]=v; this.save(); },
   learn(k,v){ this.data.taught[k.toLowerCase()]=v; this.save(); }
@@ -275,7 +279,7 @@ function renderZipView(f,container){
   if(!entries.length){ container.innerHTML+="<p>This ZIP looks empty.</p>"; return; }
   for(const e of entries){ const d=document.createElement("div"); d.className="zipitem"; d.textContent="📄 "+e.name+"  —  "+e.size+" bytes"; d.onclick=()=>{ const isHtml=/\.html?$/i.test(e.name); const tmp=RubyFiles.create(e.name.replace(/[^\w.\-]/g,"_"), typeof e.content==="string"?e.content:new TextDecoder().decode(e.content)); openPreview(tmp.id); }; container.appendChild(d); }
 }
-function renderFileCard(f){ if(window.RubySettings && !RubySettings.data.fileCards) return;
+function renderFileCard(f){ if(typeof RubySettings!=="undefined" && !RubySettings.data.fileCards) return;
   const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="filecard";
   const icon = f.type==="zip"?"📦":(f.type==="html"?"🌐":"📄");
   d.innerHTML = icon+" <b></b><div class='small'></div>";
@@ -552,7 +556,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.9)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.10)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -645,8 +649,8 @@ const RubyChats = {
 };
 const RubySettings = {
   key:"ruby_ai_settings_v1",
-  data:{memory:true, fileCards:true, livePreview:true, enterSend:true, animations:true},
-  labels:{memory:"🧠 Long-term memory (Ruby remembers you)", fileCards:"📁 File cards & downloads", livePreview:"▶ Live HTML preview", enterSend:"⏎ Enter key sends message", animations:"✨ Animations"},
+  data:{memory:true, fileCards:true, livePreview:true, enterSend:true, animations:true, voiceAutoSend:false},
+  labels:{memory:"🧠 Long-term memory (Ruby remembers you)", fileCards:"📁 File cards & downloads", livePreview:"▶ Live HTML preview", enterSend:"⏎ Enter key sends message", animations:"✨ Animations", voiceAutoSend:"🎙 Voice: auto-send after I finish talking"},
   load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=Object.assign(this.data, JSON.parse(r)); }catch(e){} },
   save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} }
 };
@@ -735,7 +739,7 @@ const RubyStudio={
      else addMsg('Attached: '+f.name+' — Ruby saved the attachment; media files can be opened in the studios.','user'); });
    rubyToast('Added '+arr.length+' file(s).',3000);},
  handleImages(list){const arr=Array.from(list||[]);this.images.push(...arr);document.getElementById('rubyAttachStatus').textContent=this.images.length+' image(s) attached';arr.forEach(f=>{const u=URL.createObjectURL(f);addMsg('Image attached: '+f.name+' (open Image Studio to edit it).','user');this.loadImageUrl(u)});rubyToast('Image(s) attached. Open Image Studio to edit or download.',2500)},
- toggleMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){rubyToast('Speech recognition is not supported in this browser. Try Chrome or Edge.',4000);return}if(this.listening){this.recognition.stop();return}const r=new SR();this.recognition=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.onresult=e=>{let final='';for(let i=e.resultIndex;i<e.results.length;i++)final+=e.results[i][0].transcript;document.getElementById('inp').value=final};r.onend=()=>{this.listening=false;document.getElementById('rubyMicBtn').textContent='🎙 Microphone'};r.onerror=e=>rubyToast('Microphone: '+e.error,3000);this.listening=true;document.getElementById('rubyMicBtn').textContent='⏹ Stop listening';r.start()},
+ toggleMic(){ if(typeof RubyVoice!=="undefined") return RubyVoice.toggle(); const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){rubyToast('Speech recognition is not supported in this browser. Try Chrome or Edge.',4000);return}if(this.listening){this.recognition.stop();return}const r=new SR();this.recognition=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.onresult=e=>{let final='';for(let i=e.resultIndex;i<e.results.length;i++)final+=e.results[i][0].transcript;document.getElementById('inp').value=final};r.onend=()=>{this.listening=false;document.getElementById('rubyMicBtn').textContent='🎙 Microphone'};r.onerror=e=>rubyToast('Microphone: '+e.error,3000);this.listening=true;document.getElementById('rubyMicBtn').textContent='⏹ Stop listening';r.start()},
  open(title,html){document.getElementById('rubyStudioTitle').textContent=title;document.getElementById('rubyStudioContent').innerHTML=html;document.getElementById('rubyStudioModal').classList.add('open')},close(){document.getElementById('rubyStudioModal').classList.remove('open')},
  /* ---------- IMAGE STUDIO ---------- */
  openImageStudio(){this.open('🎨 Ruby Image Studio',`<p class="small">Generate a picture from words, or open your own image and really edit it — brightness, contrast, saturation, blur, hue, preset filters, rotate and flip — then download the PNG. All local: Ruby draws and edits with the canvas, no outside AI.</p>
@@ -810,6 +814,52 @@ const RubyStudio={
    if(document.getElementById('audioReverse')?.checked){ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const rev=ctx.createBuffer(b.numberOfChannels,b.length,b.sampleRate); for(let ch=0;ch<b.numberOfChannels;ch++){ const src=b.getChannelData(ch),dst=rev.getChannelData(ch); for(let i=0;i<b.length;i++)dst[i]=src[b.length-1-i]; } b=rev; }
    const rate=b.sampleRate,channels=b.numberOfChannels,OC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OC)return rubyToast('This browser cannot render audio offline.');
    const ctx=new OC(channels,b.length,rate),src=ctx.createBufferSource(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();src.buffer=b;src.playbackRate.value=(Number(document.getElementById('audioSpeed')?.value)||100)/100;gain.gain.value=(Number(document.getElementById('audioGain')?.value)||100)/100;filter.type='lowpass';filter.frequency.value=Number(document.getElementById('audioFilter')?.value)||12000;src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();const out=await ctx.startRendering(),wav=this.bufferToWav(out),url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));this.audioBuffer=out;this.addAudioDownload(url,'ruby-edited-audio.wav');const st=document.getElementById('musicStatus');if(st)st.textContent='Effects applied (volume, filter, speed'+(document.getElementById('audioReverse')?.checked?', reversed':'')+'). Exported as WAV — download below.'}
+};
+
+
+/* ===== RubyVoice v1.10: click, talk, and your words become text you can send ===== */
+const RubyVoice = {
+  rec:null, listening:false, finalText:"",
+  supported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); },
+  setUI(on){
+    for(const id of ["composerMicBtn","rubyMicBtn"]){ const b=document.getElementById(id); if(!b) continue;
+      b.classList.toggle("mic-live", on);
+      if(id==="composerMicBtn") b.textContent = on ? "⏹" : "🎙";
+      else b.textContent = on ? "⏹ Stop listening" : "🎙 Microphone"; }
+    const cap=document.getElementById("voiceCaption"); if(cap) cap.style.display = on ? "block" : "none";
+    if(on && cap) cap.querySelector(".in").textContent = "🎙 Listening… start talking — your words will appear in the message box";
+  },
+  toggle(){ if(this.listening) this.stop(); else this.start(); },
+  start(){
+    if(!this.supported()){ rubyToast("🎙 Voice typing isn't supported in this browser — it works in Chrome and Edge. You can still type as normal.",6000); return; }
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    let r; try{ r=new SR(); }catch(e){ rubyToast("🎙 Couldn't start the microphone: "+e.message,5000); return; }
+    this.rec=r; this.finalText="";
+    r.lang=(navigator.language||"en-US"); r.interimResults=true; r.continuous=true;
+    r.onresult=(e)=>{
+      let interim="", finalChunk="";
+      for(let i=e.resultIndex;i<e.results.length;i++){ const res=e.results[i]; if(res.isFinal) finalChunk+=res[0].transcript; else interim+=res[0].transcript; }
+      const cap=document.getElementById("voiceCaption");
+      if(finalChunk){
+        this.finalText += finalChunk;
+        const inp=document.getElementById("inp");
+        const cur=inp.value.replace(/\s+$/,"");
+        inp.value = (cur?cur+" ":"") + finalChunk.trim() + " ";
+        inp.dispatchEvent(new Event("input",{bubbles:true}));
+        if(cap) cap.querySelector(".in").textContent="🎙 Heard: “"+finalChunk.trim()+"” — tap Send, or keep talking";
+        if(typeof RubySettings!=="undefined" && RubySettings.data.voiceAutoSend){ this.stop(); const v=inp.value.trim(); if(v){ inp.value=""; if(typeof runRubyTurn==="function") runRubyTurn(v); else if(typeof send==="function") send(); } }
+      } else if(interim && cap){ cap.querySelector(".in").textContent="🎙 …"+interim; }
+    };
+    r.onerror=(e)=>{
+      if(e.error==="not-allowed"||e.error==="service-not-allowed") rubyToast("🎙 Microphone is blocked. Tap the lock/tune icon in the browser address bar → Site settings → Microphone → Allow, then try again.",8000);
+      else if(e.error==="no-speech") rubyToast("🎙 I didn't hear anything — tap the mic and try again, a bit closer.",4500);
+      else if(e.error!=="aborted") rubyToast("🎙 Microphone: "+e.error,4500);
+    };
+    r.onend=()=>{ this.listening=false; this.setUI(false); };
+    try{ r.start(); this.listening=true; this.setUI(true); }
+    catch(e){ rubyToast("🎙 Couldn't start the microphone: "+e.message,5000); }
+  },
+  stop(){ if(this.rec){ try{ this.rec.stop(); }catch(e){} } this.listening=false; this.setUI(false); }
 };
 
 // Model-specific workflow improvements: structured task plans and explicit quality checks.
