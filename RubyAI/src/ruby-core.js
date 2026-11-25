@@ -1,4 +1,4 @@
-// Ruby Architecture v1.6 — core extracted from RubyAI.html
+// Ruby Architecture v1.9 — core extracted from RubyAI-v1.9.html (main brain + Ruby Studio)
 
 "use strict";
 /* ============================================================
@@ -31,6 +31,20 @@ const Knowledge = {
   ai:"An AI assistant takes your words, works out what you mean (intent), plans steps, uses tools/knowledge, and answers. Ruby AI does all of that locally on your device — no outside AI service is called.",
   rubyos:"RubyOS is Wyatt's browser-based operating system. Ruby AI is its standalone companion — separate from RubyOS, so it can be downloaded and used on its own."
 };
+
+Knowledge.fractions="A fraction is part of a whole: the top number (numerator) says how many parts you have, the bottom (denominator) says how many equal parts the whole was cut into. 1/2 + 1/3: make the bottoms match (6) → 3/6 + 2/6 = 5/6. Ask Ruby to do fraction maths for you — she calculates exactly.";
+Knowledge.gravity="Gravity is the pull that attracts masses to each other. Earth's gravity pulls everything toward the ground at about 9.8 m/s² — that's why dropped things fall down, and why the Moon stays in orbit instead of drifting away.";
+Knowledge.photosynthesis="Photosynthesis is how plants make their food: they take in sunlight, water and carbon dioxide, and turn them into sugar (energy) and oxygen. It's why plants need light, and where much of Earth's oxygen comes from.";
+Knowledge.electricity="Electricity is the flow of tiny charged particles called electrons through a material, usually a metal wire. Voltage pushes the flow, current is how much flows, and resistance slows it down — like water pressure, flow and a narrow pipe.";
+Knowledge.internet="The internet is a worldwide network of computers connected by cables and radio signals. When you open a website, your device asks a server (another computer) for the page's files, and they travel across the network in small packets that get reassembled on your screen.";
+Knowledge.computer="A computer is a machine that follows instructions (programs) to process information. Its main parts: the CPU (the 'brain' that calculates), memory/RAM (fast short-term workspace), storage (long-term files), and input/output like the keyboard and screen.";
+Knowledge.moon="The Moon is Earth's natural satellite, about 384,400 km away. It doesn't make its own light — we see sunlight reflecting off it. Its phases (new, crescent, full) come from the changing angles of the Sun, Moon and Earth. The Moon's gravity also causes the ocean tides.";
+Knowledge.volcano="A volcano is an opening in Earth's crust where melted rock (magma) from below can erupt as lava, ash and gas. Most volcanoes sit at the edges of tectonic plates, where Earth's giant rocky slabs meet.";
+Knowledge.magnets="A magnet is an object that produces a magnetic field, attracting iron, nickel and cobalt, and pushing or pulling other magnets. Every magnet has a north and south pole: opposite poles attract, same poles repel. Earth itself acts like a giant magnet — that's why compasses work.";
+Knowledge.dinosaurs="Dinosaurs were a group of reptiles that dominated Earth for over 160 million years, from about 240 to 66 million years ago. Most died out after a huge asteroid impact changed the climate — but birds are their living descendants, so dinosaurs never fully disappeared.";
+Knowledge.water="The water cycle: the Sun evaporates water from oceans and lakes → it cools and condenses into clouds → it falls as precipitation (rain/snow) → it collects in rivers, lakes and groundwater → and repeats. The water you drink today is billions of years old, endlessly recycled.";
+Knowledge.space="Space begins about 100 km above Earth. Our solar system has 8 planets orbiting the Sun: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus and Neptune. Jupiter is the biggest; Mercury is closest to the Sun; Earth is the only planet known to have life.";
+
 const CodeGen = {
   detectLang(t){ if(/python/.test(t))return"python"; if(/html|website|web ?page/.test(t))return"html"; return"javascript"; },
   topic(t){ if(/flappy/.test(t))return"flappy"; if(/calculator/.test(t))return"calculator"; if(/todo|to-do|task list/.test(t))return"todo"; if(/game|clicker/.test(t))return"game"; if(/countdown|timer/.test(t))return"timer"; if(/sort/.test(t))return"sort"; return"generic"; },
@@ -52,7 +66,9 @@ function loop(){ if(!x) return; frame++; v+=0.45; y+=v;
  x.fillStyle='#fff'; x.font='bold 22px Arial'; x.fillText('Score: '+score,12,28);
  if(y>466||y<0) dead=true; if(dead){ x.fillStyle='#fff'; x.font='bold 26px Arial'; x.fillText('Game over — click to retry',28,240); }
  requestAnimationFrame(loop); } loop();
-<\/script></body></html>`};
+<\/script>
+
+</body></html>`};
     if(lang==="python"&&top==="calculator") return {lang,code:`# Ruby AI — Python Calculator\ndef calc(a, op, b):\n    if op == '+': return a + b\n    if op == '-': return a - b\n    if op == '*': return a * b\n    if op == '/': return a / b if b != 0 else 'Cannot divide by zero'\n    return 'Unknown operator'\n\nprint(calc(12, '*', 8))  # 96`};
     if(lang==="python") return {lang,code:`# Ruby AI — Python starter for: ${prompt}\ndef main():\n    items = []\n    while True:\n        text = input('Type something (or quit): ')\n        if text.lower() == 'quit': break\n        items.append(text)\n        print(f'Added. You now have {len(items)} item(s).')\n    print('Your items:', items)\n\nif __name__ == '__main__':\n    main()`};
     if(lang==="html") return {lang,code:`<!DOCTYPE html>\n<html><head><meta charset="utf-8"><title>My Page by Ruby AI</title>\n<style>body{font-family:Arial;background:#160005;color:#ffeef1;text-align:center}h1{color:#ff2e4d}button{background:#e0112b;color:#fff;border:0;padding:10px 16px;border-radius:10px}</style></head>\n<body><h1>Hello from Ruby AI</h1><p id="msg">Click the button.</p><button onclick="document.getElementById('msg').textContent='It works!'">Click me</button></body></html>`};
@@ -311,13 +327,117 @@ const RubyMath = {
 };
 function safeMath(expr){ const r=RubyMath.trySolve("calculate "+expr); if(!r) return null; const m=r.match(/= (.+?)(?:  |$)/); if(!m) return null; const n=parseFloat(m[1]); return isNaN(n)?null:n; }
 function tokenize(t){ return t.toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean); }
-const RubyBrain = {
-  reply(raw){
-    const t = raw.trim(), low = t.toLowerCase(); RubyMemory.data.turns++;
-    RubyMemory.data.history.push({who:"user",text:t,at:Date.now()}); if(RubyMemory.data.history.length>200) RubyMemory.data.history=RubyMemory.data.history.slice(-200);
-    let out = this.think(t, low); RubyMemory.data.history.push({who:"ruby",text:out,at:Date.now()}); RubyMemory.save(); return out;
+
+/* ===== Ruby Model Router v2 — four isolated local reasoning profiles =====
+   These are separate behavior/configuration brains, not separately trained
+   neural networks. No network calls, external model files, or third-party APIs.
+*/
+const RubyModels = {
+  key:"ruby_ai_model_v2",
+  profiles:{
+    free:{name:"Ruby Free",hint:"Quick answers • everyday tasks",depth:1,steps:2,style:"concise",code:false},
+    pro:{name:"Ruby Pro",hint:"More planning • multi-step tasks",depth:2,steps:4,style:"structured",code:false},
+    professional:{name:"Ruby Professional",hint:"Deep task breakdown • careful checks",depth:3,steps:6,style:"thorough",code:false},
+    coding:{name:"Ruby Coding",hint:"Code-first • file and project building",depth:3,steps:7,style:"engineering",code:true}
   },
-  think(t, low){
+  current:"free",
+  brains:{
+    free:{focus:["answer directly","use built-in knowledge","keep responses concise"]},
+    pro:{focus:["identify the goal","split work into stages","check constraints","give a practical result"]},
+    professional:{focus:["define requirements","break complex work into subtasks","check edge cases","state assumptions and limitations","verify consistency","summarize next steps"]},
+    coding:{focus:["identify target language and file type","design the implementation","write code using local Ruby generators","check syntax-sensitive details","include run/build instructions","never claim an executable was compiled unless it was","flag platform-specific build requirements"]}
+  },
+  select(id){
+    if(!this.profiles[id]) id="free";
+    this.current=id;
+    try{localStorage.setItem(this.key,id)}catch(e){}
+    const sel=document.getElementById("rubyModel"); if(sel) sel.value=id;
+    const hint=document.getElementById("modelHint"); if(hint) hint.textContent=this.profiles[id].hint;
+    rubyToast(this.profiles[id].name+" selected ◆",1800);
+  },
+  load(){
+    let id="free"; try{id=localStorage.getItem(this.key)||"free"}catch(e){}
+    this.current=this.profiles[id]?id:"free";
+    const sel=document.getElementById("rubyModel"); if(sel) sel.value=this.current;
+    const hint=document.getElementById("modelHint"); if(hint) hint.textContent=this.profiles[this.current].hint;
+  },
+  plan(prompt,id=this.current){
+    const p=this.profiles[id]||this.profiles.free;
+    const words=prompt.trim().split(/\s+/).filter(Boolean);
+    const coding=/\b(code|coding|program|html|css|javascript|python|file|exe|app|build|compile|debug|script)\b/i.test(prompt);
+    const complex=words.length>35 || /\b(project|architecture|design|multiple|complete|full|entire|debug|optimi[sz]e|compare|research|step.?by.?step)\b/i.test(prompt);
+    return {profile:p,mode:p.code||coding?"engineering":complex?"multi-step":"direct",
+      checklist:p.code||coding?this.brains.coding.focus:p.depth>=3?this.brains.professional.focus:p.depth===2?this.brains.pro.focus:this.brains.free.focus};
+  },
+  status(){
+    return "Active local profile: "+this.profiles[this.current].name+
+      ". This changes Ruby's local routing, planning depth, and response behavior; it does not load a trained language model.";
+  }
+};
+
+/* Ruby's private local credential namespace.
+   A browser-only key is a local identifier, NOT a secure server API credential.
+   Never transmit it: this build has no server and makes no network requests. */
+const RubyAPI = {
+  keyName:"ruby_local_api_key_v1",
+  getKey(){
+    try{
+      let k=localStorage.getItem(this.keyName);
+      if(!k){
+        const bytes=new Uint8Array(32);
+        if(window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+        else for(let i=0;i<bytes.length;i++) bytes[i]=Math.floor(Math.random()*256);
+        k="ruby_local_"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
+        localStorage.setItem(this.keyName,k);
+      }
+      return k;
+    }catch(e){return null}
+  },
+  authorize(candidate){const k=this.getKey(); return !!k && candidate===k;},
+  info(){return "Ruby local key namespace initialized: "+(this.getKey()?"yes":"no")+
+    ". This is device-local access control only, not a remotely callable API key.";}
+};
+
+
+/* ===== v1.9 brain upgrades: chat art, unit conversions, capitals ===== */
+function RubyArtSVG(prompt){
+  const p=(prompt||"ruby").toLowerCase(); let seed=7; for(const ch of p) seed=(seed*31+ch.charCodeAt(0))>>>0;
+  const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+  let bg='<rect width="900" height="560" fill="#160005"/>', body='';
+  const stars=(n,col)=>{ let s=''; for(let i=0;i<n;i++) s+=`<circle cx="${Math.floor(rnd()*900)}" cy="${Math.floor(rnd()*380)}" r="${(1+rnd()*2).toFixed(1)}" fill="${col}"/>`; return s; };
+  if(/space|star|planet|galaxy/.test(p)){ body=stars(160,'#ffffff')+`<circle cx="640" cy="180" r="90" fill="#e0112b"/><ellipse cx="640" cy="180" rx="170" ry="34" fill="none" stroke="#ffb3bc" stroke-width="6" transform="rotate(-18 640 180)"/><circle cx="610" cy="150" r="16" fill="#ff8a9a"/>`; }
+  else if(/ocean|sea|sunset|beach/.test(p)){ bg='<rect width="900" height="560" fill="#ff9a3d"/>'; body=`<circle cx="450" cy="290" r="62" fill="#ffd23d"/><rect y="300" width="900" height="260" fill="#14418f"/>`+(()=>{let s='';for(let i=0;i<22;i++){const y=320+rnd()*220;s+=`<path d="M ${Math.floor(rnd()*800)} ${y} q 30 -10 60 0 t 60 0" stroke="#cfe4ff" fill="none" stroke-width="3"/>`;}return s})(); }
+  else if(/mountain|snow/.test(p)){ bg='<rect width="900" height="560" fill="#8ec9ff"/>'; body=`<circle cx="120" cy="90" r="42" fill="#ffe9a8"/><polygon points="0,560 300,180 560,560" fill="#43536e"/><polygon points="240,560 560,120 900,560" fill="#2f3c52"/><polygon points="300,180 262,232 338,232" fill="#ffffff"/><polygon points="560,120 512,190 608,190" fill="#ffffff"/>`; }
+  else if(/forest|tree/.test(p)){ bg='<rect width="900" height="560" fill="#7fb069"/>'; body=(()=>{let s='<rect y="430" width="900" height="130" fill="#123d1a"/>';for(let i=0;i<26;i++){const x=Math.floor(rnd()*880),th=90+rnd()*160;s+=`<rect x="${x}" y="${560-th}" width="9" height="${th-50}" fill="#0a2410"/><polygon points="${x+4},${560-th-70} ${x+40},${560-th+26} ${x-32},${560-th+26}" fill="#1d5c2a"/>`;}return s})(); }
+  else if(/city|town/.test(p)){ bg='<rect width="900" height="560" fill="#160a33"/>'; body=stars(70,'#ffe9a8')+(()=>{let s='',x=0;while(x<880){const bw=50+rnd()*70,bh=130+rnd()*280;s+=`<rect x="${x}" y="${560-bh}" width="${bw}" height="${bh}" fill="#141433"/>`;for(let wy=560-bh+16;wy<540;wy+=26)for(let wx=x+9;wx<x+bw-10;wx+=17)if(rnd()>.45)s+=`<rect x="${wx}" y="${wy}" width="8" height="11" fill="#ffd23d"/>`;x+=bw+7;}return s})(); }
+  else { body=stars(40,'#ff8a9a')+`<polygon points="450,90 760,240 620,480 280,480 140,240" fill="#e0112b"/><polyline points="140,240 760,240" stroke="#ffffff" stroke-width="5" fill="none"/><polyline points="450,90 340,240 450,480" stroke="#ffffff" stroke-width="4" fill="none"/><polyline points="560,240 450,480" stroke="#ffffff" stroke-width="4" fill="none"/>`; }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">${bg}${body}<text x="28" y="528" font-family="Arial" font-size="26" font-weight="bold" fill="#ffeef1">${(prompt||'ruby art').slice(0,44).replace(/[<>&]/g,'')}</text></svg>`;
+}
+const RubyConvert = {
+  units:{ "km":{to:"miles",f:v=>v*0.621371},"miles":{to:"km",f:v=>v*1.60934},"kg":{to:"lb",f:v=>v*2.20462},"lb":{to:"kg",f:v=>v*0.453592},"pounds":{to:"kg",f:v=>v*0.453592},"g":{to:"oz",f:v=>v*0.035274},"oz":{to:"g",f:v=>v*28.3495},"cm":{to:"inches",f:v=>v*0.393701},"inches":{to:"cm",f:v=>v*2.54},"m":{to:"ft",f:v=>v*3.28084},"ft":{to:"m",f:v=>v*0.3048},"hours":{to:"minutes",f:v=>v*60},"minutes":{to:"seconds",f:v=>v*60},"days":{to:"hours",f:v=>v*24},"weeks":{to:"days",f:v=>v*7},"gb":{to:"mb",f:v=>v*1024},"mb":{to:"kb",f:v=>v*1024},"litres":{to:"gallons",f:v=>v*0.264172},"gallons":{to:"litres",f:v=>v*3.78541} },
+  tryConvert(t){ const low=t.toLowerCase();
+    let m=low.match(/(-?[\d.]+)\s*°?\s*(celsius|c|fahrenheit|f)\b.*?(fahrenheit|celsius|to f|to c)/) || low.match(/(-?[\d.]+)\s*degrees?\s*(celsius|fahrenheit)/);
+    if(m && /fahrenheit|celsius/.test(low)){ const v=parseFloat(m[1]); const fromC=/celsius|\bc\b/.test(m[2])|| (m[2]==='c'); if(/fahrenheit/.test(low)&&fromC) return `${v}°C = ${Math.round((v*9/5+32)*100)/100}°F.`; if(/celsius/.test(low)&&!fromC) return `${v}°F = ${Math.round(((v-32)*5/9)*100)/100}°C.`; }
+    m=low.match(/(-?[\d.]+)\s*([a-z]+)\s+(?:to|in|into|=)\s+([a-z]+)/) || low.match(/how many ([a-z]+) (?:is|are) (-?[\d.]+)\s*([a-z]+)/);
+    if(m){ let v,from,to; if(m[3]&&this.units[m[2]]&&m[1]&&!isNaN(parseFloat(m[1]))){ v=parseFloat(m[1]); from=m[2]; to=m[3]; } else if(m[2]&&m[3]){ to=m[1]; v=parseFloat(m[2]); from=m[3]; }
+      if(v!==undefined&&this.units[from]&&this.units[from].to.replace(/s$/,'')===to.replace(/s$/,'')) { const out=this.units[from].f(v); return `${v} ${from} = ${Math.round(out*10000)/10000} ${this.units[from].to}.`; }
+      if(v!==undefined&&this.units[from]&&!to) return `${v} ${from} = ${Math.round(this.units[from].f(v)*10000)/10000} ${this.units[from].to}.`; }
+    m=low.match(/(-?[\d.]+)\s*([a-z]+)$/); return null; }
+};
+const RubyCapitals = {"france":"Paris","germany":"Berlin","italy":"Rome","spain":"Madrid","portugal":"Lisbon","the uk":"London","united kingdom":"London","england":"London","ireland":"Dublin","netherlands":"Amsterdam","belgium":"Brussels","switzerland":"Bern","austria":"Vienna","poland":"Warsaw","greece":"Athens","turkey":"Ankara","russia":"Moscow","ukraine":"Kyiv","sweden":"Stockholm","norway":"Oslo","denmark":"Copenhagen","finland":"Helsinki","iceland":"Reykjavik","usa":"Washington, D.C.","the usa":"Washington, D.C.","united states":"Washington, D.C.","america":"Washington, D.C.","canada":"Ottawa","mexico":"Mexico City","brazil":"Brasília","argentina":"Buenos Aires","chile":"Santiago","peru":"Lima","colombia":"Bogotá","egypt":"Cairo","nigeria":"Abuja","kenya":"Nairobi","south africa":"Pretoria","morocco":"Rabat","china":"Beijing","japan":"Tokyo","india":"New Delhi","pakistan":"Islamabad","thailand":"Bangkok","vietnam":"Hanoi","indonesia":"Jakarta","philippines":"Manila","south korea":"Seoul","australia":"Canberra","new zealand":"Wellington","iran":"Tehran","iraq":"Baghdad","israel":"Jerusalem","saudi arabia":"Riyadh","uae":"Abu Dhabi"};
+
+const RubyBrain = {
+  reply(raw, modelId=RubyModels.current){
+    const t = raw.trim(), low = t.toLowerCase();
+    const plan = RubyModels.plan(t, modelId);
+    RubyMemory.data.turns++;
+    RubyMemory.data.history.push({who:"user",text:t,at:Date.now()}); if(RubyMemory.data.history.length>200) RubyMemory.data.history=RubyMemory.data.history.slice(-200);
+    let out = this.think(t, low, plan);
+    if(plan.profile.code && /\b(exe|\.exe|installer|binary)\b/i.test(t) && !/\b(build|compile|create|make)\b/i.test(t))
+      out += "\n\nRuby Coding note: I can write source and build scripts locally, but a real Windows .exe must be compiled with a Windows-compatible toolchain. This browser-only build cannot compile native executables by itself.";
+    RubyMemory.data.history.push({who:"ruby",text:out,at:Date.now(),model:modelId}); RubyMemory.save(); return out;
+  },
+  think(t, low, plan){
     // Memory: name
     let m = low.match(/my name is ([a-z]+)/); if(m){ RubyMemory.data.name=m[1]; RubyMemory.save(); return `Nice to meet you, ${cap(m[1])}. I'll remember your name on this device.`; }
     if(/what('?s| is) my name/.test(low)) return RubyMemory.data.name ? `Your name is ${cap(RubyMemory.data.name)} — you told me and I remembered it.` : "You haven't told me your name yet. Say: my name is …";
@@ -342,7 +462,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.6)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.9)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -383,6 +503,22 @@ const RubyBrain = {
     }
     // Math (full RubyMath engine — runs before Knowledge so "what is 5 times 6" is maths, not a knowledge question)
     const mathResult = RubyMath.trySolve(t); if(mathResult) return mathResult;
+
+    // v1.9: image creation from chat
+    if(/(make|generate|create|draw|paint).{0,30}(image|picture|artwork|drawing|painting)/.test(low) || /^(image|picture|draw) of/.test(low)){
+      const subj=(t.replace(/.*?(?:image|picture|artwork|drawing|painting) of/i,"").replace(/^(make|generate|create|draw|paint)\s+(an?\s+)?/i,"").trim())||t;
+      RubyFiles.create("ruby-art.svg", RubyArtSVG(subj));
+      return `🎨 I drew that for you — see the file card below (ruby-art.svg). Tap "Open & use it here" to see it big, or Download to keep it.\n\nFor pixel-style art with editing tools (filters, rotate, flip), open the 🎨 Image Studio at the top and type the same words there.`;
+    }
+    // v1.9: music / sound from chat
+    if(/(make|generate|create|compose|play).{0,24}(music|song|melody|tune|beat)/.test(low)){ setTimeout(()=>{ try{ RubyStudio.openMusicStudio(); setTimeout(()=>RubyStudio.generateMusic(),80); }catch(e){} },60);
+      return "🎵 Opening the Music Studio and generating a track for you now — it'll start playing there, and you can change the style/tempo, type your own melody, and download it as WAV."; }
+    if(/(make|play).{0,16}(sound|sound effect|coin sound|laser|chime|alarm|drum)/.test(low)){ const kind=/coin/.test(low)?"coin":/laser/.test(low)?"laser":/alarm/.test(low)?"alarm":/drum/.test(low)?"drum":/chime|bell/.test(low)?"chime":"jump"; setTimeout(()=>{ try{ RubyStudio.makeSound(kind); }catch(e){} },60);
+      return `🔊 Making the ${kind} sound for you — it'll play in the Music Studio, where you can also download it as a WAV file.`; }
+    // v1.9: unit conversions
+    const conv = RubyConvert.tryConvert(t); if(conv) return conv;
+    // v1.9: capitals
+    const capM = low.match(/capital of ([a-z .]+?)\??$/); if(capM){ const c=RubyCapitals[capM[1].trim()]; if(c) return `The capital of ${cap(capM[1].trim())} is ${c}.`; }
     // Knowledge explanations
     for(const k in Knowledge){ if(new RegExp("\\b"+k+"\\b").test(low)) return Knowledge[k]; }
     if(/explain|what is|what are|how does|how do/.test(low)){
@@ -395,8 +531,9 @@ const RubyBrain = {
     if(/essay|paragraph/.test(low)) return "Here's a draft you can edit:\n\nTechnology is most powerful when it belongs to everyone. When tools are open, a student with one device can learn, build, and share ideas with the whole world. Ruby AI was created in that spirit: simple, open, and running entirely on the user's own device, so curiosity never has to wait for permission.\n\nWant it longer, shorter, or about a different topic? Tell me the topic.";
     if(/joke/.test(low)) return ["Why did the ruby go to school? To become a little brighter! ◆","Why do programmers love rubies? Because every bug they fix makes the gem shine more.","What did the calculator say to the student? You can count on me." ][Math.floor(Math.random()*3)];
     if(/^(hi|hey|hello|yo)\b/.test(low)) return `Hello${RubyMemory.data.name?", "+cap(RubyMemory.data.name):""}! I'm Ruby ◆ — your local AI. I can write code, do maths, explain things, write stories, make plans, and remember what you teach me. Try the chips on the side, or just ask.`;
-    if(/help|what can you do/.test(low)) return "I can do all of this — locally, no internet AI needed:\n• 💬 Chat & answer built-in knowledge questions\n• 💻 Write code — Python, JavaScript, HTML (calculators, todos, games, timers, websites…)\n• ▶️ Run JavaScript — say: run code: console.log(2+2)\n• 🧮 Maths — say: calculate 144 * 12\n• 🧠 Remember — say: remember that my dog is called Max\n• 📚 Learn from you — say: teach: Paris is the capital of France\n• 📝 Notes — say: add note: call Oakley\n• ✍️ Stories, essays & plans\n• 🕐 Date & time, jokes, and more\n\nAnd anyone can extend me — that's the Ruby Architecture (see ARCHITECTURE.md).";
-    if(/who are you|your name/.test(low)) return "I'm Ruby ◆ — a pure, local AI assistant built on the Ruby Architecture. I don't call Claude, ChatGPT, Gemini or any outside AI. Everything I do happens in this file, on your device.";
+    if(/help|what can you do/.test(low)) return "I can do all of this — locally, no internet AI needed:\n• 💬 Chat & answer built-in knowledge questions\n• 💻 Write code — Python, JavaScript, HTML (calculators, todos, games, timers, websites…)\n• ▶️ Run JavaScript — say: run code: console.log(2+2)\n• 🧮 Maths — say: calculate 144 * 12\n• 🧠 Remember — say: remember that my dog is called Max\n• 📚 Learn from you — say: teach: Paris is the capital of France\n• 📝 Notes — say: add note: call Oakley\n• ✍️ Stories, essays & plans\n• 🎨 Images — say: make an image of space (or open Image Studio to edit your own photos)\n• 🎵 Music & sounds — say: make some music, or open Music Studio to compose, play sound effects and edit audio\n• 🔁 Conversions — say: convert 5 km to miles\n• 🕐 Date & time, jokes, and more\n\nAnd anyone can extend me — that's the Ruby Architecture (see ARCHITECTURE.md).";
+    if(/model status|which model|what model/.test(low)) return RubyModels.status()+"\\n"+RubyAPI.info();
+    if(/who are you|your name/.test(low)) return "I'm Ruby ◆ — a pure, local assistant built on the Ruby Architecture. I use the selected local behavior profile and built-in engines; I do not call outside AI services.";
     if(/thank/.test(low)) return "Any time ◆ That's what I'm here for.";
     if(/bye/.test(low)) return "See you soon ◆ I'll remember what we talked about on this device.";
     // Fallback with context
@@ -469,13 +606,124 @@ function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function showMemoryText(){ const d=RubyMemory.data; let s="Here's what I remember on this device:\n"; s+= d.name?`• Your name: ${cap(d.name)}\n`:""; for(const k in d.facts) s+=`• ${k}: ${d.facts[k]}\n`; for(const k in d.taught) s+=`• (taught) ${k}: ${d.taught[k]}\n`; s+=`• Notes: ${d.notes.length} • Conversation turns: ${d.turns}`; if(!d.name && !Object.keys(d.facts).length && !Object.keys(d.taught).length) s+="\n(Nothing personal yet — teach me something!)"; return s; }
 function updateStats(){ const el=document.getElementById("memStats"); if(el) el.innerHTML=`Turns: <b>${RubyMemory.data.turns}</b><br>Facts: <b>${Object.keys(RubyMemory.data.facts).length}</b> • Taught: <b>${Object.keys(RubyMemory.data.taught).length}</b><br>Notes: <b>${RubyMemory.data.notes.length}</b><br>Memory saved on device: <b>${(RubyMemory.bytes()/1024).toFixed(2)} KB</b>`; }
 function addMsg(text,who){ const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="msg "+who; d.textContent=text; c.appendChild(d); c.scrollTop=c.scrollHeight; if(!window._renderingChat){ RubyChats.addMessage(who==="user"?"user":"ruby", text); renderChatList(); } }
-function send(){ const i=document.getElementById("inp"); const v=i.value.trim(); if(!v)return; i.value=""; addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
-function ask(v){ addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
+function runRubyTurn(v){
+  addMsg(v,"user");
+  const before=RubyFiles.lastId;
+  try{ addMsg(RubyBrain.reply(v,RubyModels.current),"ruby"); maybeRenderLastFile(before); }
+  catch(err){ addMsg("Ruby hit an internal error: "+(err?.message||String(err)),"ruby"); }
+}
+function send(){ const i=document.getElementById("inp"); const v=i.value.trim(); if(!v)return; i.value=""; runRubyTurn(v); }
+function ask(v){ runRubyTurn(v); }
 function toggleSide(){ document.getElementById("side").classList.toggle("open"); }
 function clearMemory(){ localStorage.removeItem(RubyMemory.key); RubyMemory.data={facts:{},taught:{},notes:[],tasks:[],history:[],name:"",turns:0,created:Date.now()}; RubyMemory.save(); updateStats(); }
 function showMemory(){ addMsg(showMemoryText(),"ruby"); }
 function exportMemory(){ const blob=new Blob([JSON.stringify(RubyMemory.data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ruby-ai-memory.json"; a.click(); }
 updateStats();
+RubyModels.load();
+RubyAPI.getKey();
 RubyChats.load();
 if(RubyChats.active() && RubyChats.active().messages.length){ window._renderingChat=true; renderActiveChat(); window._renderingChat=false; renderChatList(); }
 else { renderChatList(); addMsg("Hello, I'm Ruby ◆ — now with real files: ask me to make something and you'll get a file card to open it right here or download it.\n\n — your pure local AI assistant.\n\nNo API keys. No Claude, ChatGPT or Gemini hiding inside. No internet AI calls. Everything I do runs in this one file, on your phone or laptop.\n\nAsk me to write code, do maths, explain something, write a story — or teach me something new and I'll remember it.","ruby"); }
+
+
+/* Ruby Studio v2: every control wired to a real local function — image generation/editing, music composition, sound effects, audio editing. */
+/* Ruby Studio v2 (in Ruby AI v1.9): every button wired to a real local function.
+   Images: procedural scene generator + real canvas editing (filters, rotate, flip,
+   presets, resize) with PNG download. Music: layered synth composer, a melody
+   editor you can type notes into, sound effects, and audio editing
+   (gain, filter, speed/pitch, reverse) with WAV export. All on-device. */
+const RubyStudio={
+ files:[], images:[], contextText:'', recognition:null, listening:false,
+ image:null, rotation:0, flip:false, preset:'none', audioBuffer:null, audioContext:null,
+ pickFiles(){document.getElementById('rubyFileInput').click()}, pickImages(){document.getElementById('rubyImageInput').click()},
+ handleFiles(list){const arr=Array.from(list||[]);this.files.push(...arr);document.getElementById('rubyAttachStatus').textContent=this.files.length+' file(s) attached';
+   arr.forEach(f=>{ if(f.type.startsWith('audio/')){ this.loadAudio(f); addMsg('Audio attached: '+f.name+' — open Music Studio to edit and export it.','user'); }
+     else if(f.type.startsWith('text/')||/\.(html?|css|js|json|md|py|txt|xml|csv)$/i.test(f.name)){ const reader=new FileReader(); reader.onload=()=>{const text=String(reader.result||'').slice(0,30000); this.contextText+='\n\n[ATTACHED FILE: '+f.name+']\n'+text; addMsg('Attached file: '+f.name+' ('+text.length+' characters added to the next Ruby prompt)','user');}; reader.readAsText(f); }
+     else addMsg('Attached: '+f.name+' — Ruby saved the attachment; media files can be opened in the studios.','user'); });
+   rubyToast('Added '+arr.length+' file(s).',3000);},
+ handleImages(list){const arr=Array.from(list||[]);this.images.push(...arr);document.getElementById('rubyAttachStatus').textContent=this.images.length+' image(s) attached';arr.forEach(f=>{const u=URL.createObjectURL(f);addMsg('Image attached: '+f.name+' (open Image Studio to edit it).','user');this.loadImageUrl(u)});rubyToast('Image(s) attached. Open Image Studio to edit or download.',2500)},
+ toggleMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){rubyToast('Speech recognition is not supported in this browser. Try Chrome or Edge.',4000);return}if(this.listening){this.recognition.stop();return}const r=new SR();this.recognition=r;r.lang=navigator.language||'en-US';r.interimResults=true;r.continuous=false;r.onresult=e=>{let final='';for(let i=e.resultIndex;i<e.results.length;i++)final+=e.results[i][0].transcript;document.getElementById('inp').value=final};r.onend=()=>{this.listening=false;document.getElementById('rubyMicBtn').textContent='🎙 Microphone'};r.onerror=e=>rubyToast('Microphone: '+e.error,3000);this.listening=true;document.getElementById('rubyMicBtn').textContent='⏹ Stop listening';r.start()},
+ open(title,html){document.getElementById('rubyStudioTitle').textContent=title;document.getElementById('rubyStudioContent').innerHTML=html;document.getElementById('rubyStudioModal').classList.add('open')},close(){document.getElementById('rubyStudioModal').classList.remove('open')},
+ /* ---------- IMAGE STUDIO ---------- */
+ openImageStudio(){this.open('🎨 Ruby Image Studio',`<p class="small">Generate a picture from words, or open your own image and really edit it — brightness, contrast, saturation, blur, hue, preset filters, rotate and flip — then download the PNG. All local: Ruby draws and edits with the canvas, no outside AI.</p>
+ <div class="tools"><input id="imgPrompt" placeholder="Try: space, ocean sunset, mountains, forest, city, ruby gem…" style="min-width:260px"><button onclick="RubyStudio.generateArt()">🎨 Generate image</button><button class="ghost" onclick="document.getElementById('rubyImageInput').click()">Open image</button><button class="ghost" onclick="RubyStudio.rotateImage()">↻ Rotate 90°</button><button class="ghost" onclick="RubyStudio.flipImage()">↔ Flip</button><button class="ghost" onclick="RubyStudio.downloadImage()">⬇ Download PNG</button></div>
+ <div class="tools"><span class="small">Presets:</span><button class="ghost" onclick="RubyStudio.setPreset('none')">None</button><button class="ghost" onclick="RubyStudio.setPreset('bw')">Black & white</button><button class="ghost" onclick="RubyStudio.setPreset('sepia')">Sepia</button><button class="ghost" onclick="RubyStudio.setPreset('invert')">Invert</button><button class="ghost" onclick="RubyStudio.setPreset('vivid')">Vivid</button><button class="ghost" onclick="RubyStudio.resetImage()">Reset edits</button></div>
+ <div class="tools"><label>Brightness <input type="range" min="0" max="200" value="100" oninput="RubyStudio.filterImage()" id="imgBright"></label><label>Contrast <input type="range" min="0" max="200" value="100" oninput="RubyStudio.filterImage()" id="imgContrast"></label><label>Saturation <input type="range" min="0" max="250" value="100" oninput="RubyStudio.filterImage()" id="imgSat"></label><label>Blur <input type="range" min="0" max="10" value="0" oninput="RubyStudio.filterImage()" id="imgBlur"></label><label>Hue <input type="range" min="0" max="360" value="0" oninput="RubyStudio.filterImage()" id="imgHue"></label><label>Download size <select id="imgSize"><option value="0">Original canvas</option><option value="1024">1024 px</option><option value="512">512 px</option></select></label></div>
+ <canvas id="rubyImageCanvas" width="900" height="560"></canvas>`);if(this.image)this.drawImage()},
+ loadImageUrl(url){const im=new Image();im.onload=()=>{this.image=im;this.rotation=0;this.flip=false;if(document.getElementById('rubyImageCanvas'))this.drawImage()};im.src=url},
+ filterString(){const v=id=>{const e=document.getElementById(id);return e?Number(e.value):null};const b=v('imgBright')??100,co=v('imgContrast')??100,sa=v('imgSat')??100,bl=v('imgBlur')??0,hu=v('imgHue')??0;let f=`brightness(${b}%) contrast(${co}%) saturate(${sa}%) blur(${bl}px) hue-rotate(${hu}deg)`;if(this.preset==='bw')f+=' grayscale(100%)';if(this.preset==='sepia')f+=' sepia(85%)';if(this.preset==='invert')f+=' invert(100%)';if(this.preset==='vivid')f+=' saturate(170%) contrast(112%)';return f},
+ drawImage(){const c=document.getElementById('rubyImageCanvas');if(!c||!this.image)return;const x=c.getContext('2d');x.save();x.clearRect(0,0,c.width,c.height);x.filter=this.filterString();x.translate(c.width/2,c.height/2);x.rotate(this.rotation*Math.PI/180);x.scale(this.flip?-1:1,1);const swapped=this.rotation%180!==0;const iw=swapped?this.image.height:this.image.width, ih=swapped?this.image.width:this.image.height;const scale=Math.min(c.width/iw,c.height/ih);x.drawImage(this.image,-this.image.width*scale/2,-this.image.height*scale/2,this.image.width*scale,this.image.height*scale);x.restore()},
+ filterImage(){this.drawImage()},
+ setPreset(p){this.preset=p;this.drawImage();rubyToast('Preset: '+p,1500)},
+ rotateImage(){if(!this.image)return rubyToast('Open or generate an image first.');this.rotation=(this.rotation+90)%360;this.drawImage()},
+ flipImage(){if(!this.image)return rubyToast('Open or generate an image first.');this.flip=!this.flip;this.drawImage()},
+ resetImage(){['imgBright','imgContrast','imgSat'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=100});['imgBlur','imgHue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=0});this.rotation=0;this.flip=false;this.preset='none';this.drawImage()},
+ seededRand(text){let seed=2166136261;for(const ch of text)seed=((seed^ch.charCodeAt(0))*16777619)>>>0;return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}},
+ generateArt(){const c=document.getElementById('rubyImageCanvas');if(!c)return;const x=c.getContext('2d');const p=(document.getElementById('imgPrompt')?.value||'ruby nebula').toLowerCase();const rnd=this.seededRand(p);const W=900,H=560;
+   const sky=(top,bot)=>{const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,top);g.addColorStop(1,bot);x.fillStyle=g;x.fillRect(0,0,W,H)};
+   const stars=n=>{x.fillStyle='#fff';for(let i=0;i<n;i++){x.globalAlpha=.3+rnd()*.7;x.beginPath();x.arc(rnd()*W,rnd()*H*.7,1+rnd()*1.8,0,7);x.fill()}x.globalAlpha=1};
+   if(/space|star|galaxy|planet|nebula/.test(p)){ sky('#05001a','#3d0050'); stars(220); const px=620+rnd()*120,py=120+rnd()*80,pr=52+rnd()*30; const g=x.createRadialGradient(px-15,py-15,8,px,py,pr); g.addColorStop(0,'#ffd7de');g.addColorStop(.5,'#ff2e4d');g.addColorStop(1,'#7a0a1e'); x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,7);x.fill(); x.strokeStyle='rgba(255,200,210,.5)';x.beginPath();x.ellipse(px,py,pr*1.7,pr*.42,-.4,0,7);x.stroke(); }
+   else if(/ocean|sea|beach|sunset|wave/.test(p)){ sky('#ff9a3d','#5b0a3a'); x.fillStyle='#ffd23d';x.beginPath();x.arc(450,300,58,0,7);x.fill(); const g=x.createLinearGradient(0,300,0,H);g.addColorStop(0,'#274b9f');g.addColorStop(1,'#0a1440');x.fillStyle=g;x.fillRect(0,300,W,260); x.strokeStyle='rgba(255,255,255,.55)';for(let i=0;i<26;i++){x.beginPath();const yy=315+rnd()*230;x.moveTo(rnd()*W,yy);x.bezierCurveTo(rnd()*W,yy-8,rnd()*W,yy+8,rnd()*W,yy);x.stroke()} }
+   else if(/mountain|hill|snow/.test(p)){ sky('#8ec9ff','#e8f6ff'); x.fillStyle='#ffe9a8';x.beginPath();x.arc(120,90,40,0,7);x.fill(); for(let r=0;r<3;r++){ x.fillStyle=['#5a6b8a','#43536e','#2f3c52'][r]; x.beginPath(); let base=560-r*40; x.moveTo(-50,base); for(let xx=0;xx<=W;xx+=90){ x.lineTo(xx+45,base-120-rnd()*150-r*30); x.lineTo(xx+90,base);} x.lineTo(W,560);x.closePath();x.fill(); x.fillStyle='rgba(255,255,255,.85)'; for(let i=0;i<7;i++){const sx=rnd()*W,sy=300+rnd()*120;x.beginPath();x.moveTo(sx,sy);x.lineTo(sx+16,sy+22);x.lineTo(sx-16,sy+22);x.closePath();x.fill();} } }
+   else if(/forest|tree|wood/.test(p)){ sky('#0d2b12','#7fb069'); x.fillStyle='#123d1a';x.fillRect(0,430,W,130); for(let i=0;i<34;i++){const tx=rnd()*W,th=90+rnd()*170;x.fillStyle='#0a2410';x.fillRect(tx-4,560-th,8,th-60);x.fillStyle=`hsl(${110+rnd()*40},55%,${22+rnd()*18}%)`;x.beginPath();x.moveTo(tx,560-th-70);x.lineTo(tx+34,560-th+30);x.lineTo(tx-34,560-th+30);x.closePath();x.fill()} }
+   else if(/city|town|building/.test(p)){ sky('#160a33','#7a0a3e'); stars(90); x.fillStyle='#ffd23d';x.beginPath();x.arc(800,80,30,0,7);x.fill(); for(let bx=0;bx<W;){const bw=50+rnd()*70,bh=120+rnd()*260; x.fillStyle=`hsl(${260+rnd()*40},30%,${10+rnd()*10}%)`; x.fillRect(bx,560-bh,bw,bh); x.fillStyle='rgba(255,220,120,.9)'; for(let wy=560-bh+14;wy<540;wy+=24)for(let wx=bx+8;wx<bx+bw-10;wx+=16) if(rnd()>.45)x.fillRect(wx,wy,8,11); bx+=bw+6; } }
+   else if(/ruby|gem|crystal|diamond/.test(p)){ sky('#160005','#4a0013'); stars(60); x.save();x.translate(450,270); const s=150; const grad=x.createLinearGradient(-s,-s,s,s); grad.addColorStop(0,'#ff8a9a');grad.addColorStop(.45,'#e0112b');grad.addColorStop(1,'#7a0016'); x.fillStyle=grad; x.beginPath(); x.moveTo(0,-s);x.lineTo(s*.95,-s*.3);x.lineTo(s*.6,s);x.lineTo(-s*.6,s);x.lineTo(-s*.95,-s*.3);x.closePath();x.fill(); x.strokeStyle='rgba(255,255,255,.65)';x.lineWidth=3;x.beginPath();x.moveTo(-s*.95,-s*.3);x.lineTo(s*.95,-s*.3);x.moveTo(0,-s);x.lineTo(-s*.35,-s*.3);x.lineTo(0,s);x.moveTo(s*.35,-s*.3);x.lineTo(0,s);x.stroke(); x.restore(); }
+   else { sky('#160005','#a00028'); for(let i=0;i<200;i++){const xx=rnd()*W,yy=rnd()*H,r=2+rnd()*34;x.beginPath();x.arc(xx,yy,r,0,7);x.fillStyle=`rgba(255,${80+Math.floor(rnd()*130)},${110+Math.floor(rnd()*130)},${.05+rnd()*.15})`;x.fill()} }
+   x.fillStyle='rgba(255,240,243,.92)';x.font='bold 26px system-ui';x.fillText(p.slice(0,44)||'ruby art',26,528);
+   const url=c.toDataURL('image/png'); const im=new Image(); im.onload=()=>{this.image=im;this.rotation=0;this.flip=false;this.preset='none'}; im.src=url;
+   rubyToast('🎨 Ruby drew that locally from your words. Edit it with the sliders, then Download PNG.',4000)},
+ downloadImage(){const c=document.getElementById('rubyImageCanvas');if(!c)return rubyToast('Nothing to download yet — generate or open an image first.');
+   const size=Number(document.getElementById('imgSize')?.value||0); let src=c;
+   if(size&&size!==c.width){ const t=document.createElement('canvas'); const scale=size/c.width; t.width=size; t.height=Math.round(c.height*scale); t.getContext('2d').drawImage(c,0,0,t.width,t.height); src=t; }
+   const a=document.createElement('a'); a.href=src.toDataURL('image/png'); a.download='ruby-image.png'; a.style.display='none'; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1200); rubyToast('⬇ Downloading ruby-image.png',2500)},
+ /* ---------- MUSIC & SOUND STUDIO ---------- */
+ openMusicStudio(){this.open('🎵 Ruby Music & Sound Studio',`<p class="small">Ruby composes real music with a synthesizer, plays sound effects, and edits audio you load (volume, filter, speed/pitch, reverse) — export everything as WAV. All local.</p>
+ <div class="tools"><label>Style <select id="musicStyle"><option value="ambient">Ambient</option><option value="chiptune">Chiptune</option><option value="piano">Piano-like</option><option value="bass">Bass groove</option></select></label><label>Tempo <input id="musicTempo" type="number" min="50" max="200" value="110" style="width:75px"></label><label>Bars <input id="musicBars" type="number" min="1" max="16" value="4" style="width:65px"></label><button onclick="RubyStudio.generateMusic()">🎼 Generate & play</button><button class="ghost" onclick="document.getElementById('rubyAudioInput').click()">Load audio</button></div>
+ <div class="tools"><input id="melodyNotes" placeholder="Type your own melody: C4 E4 G4 A4 G4 E4" style="min-width:280px"><button onclick="RubyStudio.playMelody()">▶ Play my melody</button><span class="small">Notes A–G, add # and octave: F#4. R = rest.</span></div>
+ <div class="tools"><span class="small">Sound effects:</span><button class="ghost" onclick="RubyStudio.makeSound('coin')">🪙 Coin</button><button class="ghost" onclick="RubyStudio.makeSound('laser')">🔫 Laser</button><button class="ghost" onclick="RubyStudio.makeSound('jump')">🦘 Jump</button><button class="ghost" onclick="RubyStudio.makeSound('chime')">🔔 Chime</button><button class="ghost" onclick="RubyStudio.makeSound('alarm')">🚨 Alarm</button><button class="ghost" onclick="RubyStudio.makeSound('drum')">🥁 Drum beat</button></div>
+ <input id="rubyAudioInput" type="file" accept="audio/*" style="display:none" onchange="RubyStudio.loadAudio(this.files[0])"><audio id="rubyAudioPlayer" controls></audio>
+ <div class="tools"><label>Volume <input id="audioGain" type="range" min="0" max="200" value="100"></label><label>Low-pass Hz <input id="audioFilter" type="range" min="300" max="12000" value="12000"></label><label>Speed % <input id="audioSpeed" type="range" min="50" max="200" value="100"></label><label><input type="checkbox" id="audioReverse"> Reverse</label><button onclick="RubyStudio.processAudio()">Apply effects & export WAV</button></div>
+ <p id="musicStatus" class="small">Generated music, your melodies, sound effects and edited audio can all be downloaded as WAV.</p>`);},
+ noteFreq(name){const m=/^([A-G])(#|B)?(\d)$/i.exec(name.trim());if(!m)return null;const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1].toUpperCase()];let semi=base+(m[2]==='#'?1:m[2]&&m[2].toUpperCase()==='B'?-1:0);const midi=12*(Number(m[3])+1)+semi;return 440*Math.pow(2,(midi-69)/12)},
+ addTone(data,rate,freq,startSec,durSec,kind,gain){const start=Math.floor(startSec*rate),len=Math.floor(durSec*rate);for(let j=0;j<len&&start+j<data.length;j++){const t=j/rate;let v=0;if(kind==='square')v=Math.sign(Math.sin(2*Math.PI*freq*t))*.6;else if(kind==='saw')v=(2*((freq*t)%1)-1)*.7;else if(kind==='piano')v=Math.sin(2*Math.PI*freq*t)+.4*Math.sin(4*Math.PI*freq*t)+.15*Math.sin(6*Math.PI*freq*t),v/=1.55;else v=Math.sin(2*Math.PI*freq*t);const env=Math.exp(-t*3.2);data[start+j]+=v*env*gain}},
+ addHat(data,rate,startSec,gain){const start=Math.floor(startSec*rate),len=Math.floor(.05*rate);for(let j=0;j<len&&start+j<data.length;j++){data[start+j]+=(Math.random()*2-1)*gain*(1-j/len)}},
+ makeBuffer(seconds,rate){const ctx=new (window.AudioContext||window.webkitAudioContext)();const buf=ctx.createBuffer(1,Math.max(1,Math.ceil(seconds*rate)),rate);this.audioContext=ctx;return buf},
+ playBuffer(buf,name){const ctx=this.audioContext||new (window.AudioContext||window.webkitAudioContext)();this.audioContext=ctx;const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination);src.start();this.audioBuffer=buf;const url=URL.createObjectURL(new Blob([this.bufferToWav(buf)],{type:'audio/wav'}));const player=document.getElementById('rubyAudioPlayer');if(player)player.src=url;this.addAudioDownload(url,name);const st=document.getElementById('musicStatus');if(st)st.textContent='Now playing: '+name+' — download it with the link below.'},
+ compose(style,tempo,bars){const rate=44100,beat=60/tempo,seconds=bars*4*beat;const buf=this.makeBuffer(seconds,rate),data=buf.getChannelData(0);
+   const chords={ambient:[['A3','C4','E4'],['F3','A3','C4'],['C4','E4','G4'],['G3','B3','D4']],piano:[['C4','E4','G4'],['A3','C4','E4'],['F3','A3','C4'],['G3','B3','D4']],chiptune:[['C4','E4','G4'],['A3','C4','E4'],['F3','A3','C4'],['G3','B3','D4']],bass:[['A1','A1','C2'],['A1','A1','E2'],['F1','F1','A1'],['G1','G1','B1']]}[style]||[['A3','C4','E4']];
+   const kind=style==='chiptune'?'square':style==='bass'?'saw':style==='piano'?'piano':'sine';
+   for(let bar=0;bar<bars;bar++){const chord=chords[bar%chords.length],barStart=bar*4*beat;
+     if(style==='ambient'){ chord.forEach(n=>this.addTone(data,rate,this.noteFreq(n),barStart,beat*4,'sine',.12)); }
+     else if(style==='bass'){ for(let s2=0;s2<8;s2++){ this.addTone(data,rate,this.noteFreq(chord[s2%chord.length]),barStart+s2*beat/2,beat*.45,'saw',.20); if(s2%2===0)this.addHat(data,rate,barStart+s2*beat/2,.05);} }
+     else { const arp=[0,1,2,1,0,2,1,2]; for(let s2=0;s2<8;s2++){ this.addTone(data,rate,this.noteFreq(chord[arp[s2]]),barStart+s2*beat/2,beat*.5,kind,.16); } this.addTone(data,rate,this.noteFreq(chord[0])/2,barStart,beat*2,'sine',.12); }
+   } return buf},
+ async generateMusic(){const tempo=Math.max(50,Math.min(200,Number(document.getElementById('musicTempo')?.value)||110)),bars=Math.max(1,Math.min(16,Number(document.getElementById('musicBars')?.value)||4)),style=document.getElementById('musicStyle')?.value||'ambient';const buf=this.compose(style,tempo,bars);this.playBuffer(buf,'ruby-'+style+'-music.wav');rubyToast('🎼 Generated a '+style+' track at '+tempo+' BPM',3000)},
+ playMelody(){const raw=(document.getElementById('melodyNotes')?.value||'').trim();if(!raw)return rubyToast('Type some notes first, like: C4 E4 G4 A4');const tokens=raw.split(/[\s,]+/).filter(Boolean);const tempo=112,beat=60/tempo,rate=44100;const buf=this.makeBuffer(tokens.length*beat+0.4,rate),data=buf.getChannelData(0);let bad=0;tokens.forEach((tk,i)=>{if(/^r$/i.test(tk))return;const f=this.noteFreq(tk);if(!f){bad++;return}this.addTone(data,rate,f,i*beat,beat*.92,'piano',.22)});this.playBuffer(buf,'ruby-my-melody.wav');if(bad)rubyToast('Played it — '+bad+' note(s) were not recognised and were skipped.',3500)},
+ makeSound(kind){const rate=44100;let buf;
+   if(kind==='drum'){ buf=this.makeBuffer(2,rate); const d=buf.getChannelData(0); for(let b=0;b<4;b++){ const st=b*0.5; for(let j=0;j<Math.floor(.18*rate);j++){ const i=Math.floor(st*rate)+j; if(i<d.length)d[i]+=Math.sin(2*Math.PI*(150-j/rate*300)*j/rate)*Math.exp(-j/(rate*.06))*.5; } this.addHat(d,rate,st+.25,.12);} }
+   else { buf=this.makeBuffer(1.1,rate); const d=buf.getChannelData(0);
+     if(kind==='coin'){ this.addTone(d,rate,988,0,.09,'square',.18); this.addTone(d,rate,1319,.09,.5,'square',.18); }
+     else if(kind==='laser'){ for(let j=0;j<Math.floor(.35*rate);j++){ const f=1400-j/rate*2600; d[j]+=Math.sin(2*Math.PI*f*j/rate)*.22*Math.exp(-j/(rate*.3)); } }
+     else if(kind==='jump'){ for(let j=0;j<Math.floor(.3*rate);j++){ const f=300+j/rate*1800; d[j]+=Math.sin(2*Math.PI*f*j/rate)*.22*Math.exp(-j/(rate*.35)); } }
+     else if(kind==='chime'){ [1319,1568,2093].forEach((f,i)=>this.addTone(d,rate,f,i*.12,.8,'sine',.16)); }
+     else if(kind==='alarm'){ for(let r2=0;r2<3;r2++){ this.addTone(d,rate,880,r2*.3,.14,'square',.16); this.addTone(d,rate,660,r2*.3+.15,.14,'square',.16); } }
+     else { this.addTone(d,rate,660,0,.4,'sine',.2); } }
+   if(!document.getElementById('rubyStudioModal')?.classList.contains('open')) this.openMusicStudio();
+   setTimeout(()=>this.playBuffer(buf,'ruby-'+kind+'-sound.wav'),60); rubyToast('🔊 Made the '+kind+' sound — playing it now, WAV download is in the Music Studio.',3500)},
+ addAudioDownload(url,name){let a=document.getElementById('rubyAudioDownload');if(!a){a=document.createElement('a');a.id='rubyAudioDownload';a.style.display='block';a.style.margin='10px 0';document.getElementById('rubyStudioContent').appendChild(a)}a.href=url;a.download=name;a.textContent='⬇ Download '+name},
+ async loadAudio(file){if(!file)return;try{const bytes=await file.arrayBuffer(),ctx=new (window.AudioContext||window.webkitAudioContext)(),buf=await ctx.decodeAudioData(bytes);this.audioBuffer=buf;this.audioContext=ctx;const url=URL.createObjectURL(file);const player=document.getElementById('rubyAudioPlayer');if(player)player.src=url;const status=document.getElementById('musicStatus');if(status)status.textContent='Loaded '+file.name+' • '+buf.duration.toFixed(1)+' seconds. Adjust volume / filter / speed / reverse, then Apply effects & export WAV.';if(!document.getElementById('rubyStudioModal')?.classList.contains('open'))this.openMusicStudio()}catch(e){rubyToast('Could not decode this audio file: '+e.message,4000)}},
+ bufferToWav(buffer){const channels=buffer.numberOfChannels,length=buffer.length*channels*2+44,ab=new ArrayBuffer(length),v=new DataView(ab);let o=0;const str=s=>{for(let i=0;i<s.length;i++)v.setUint8(o++,s.charCodeAt(i))};str('RIFF');v.setUint32(o,36+buffer.length*channels*2,true);o+=4;str('WAVEfmt ');v.setUint32(o,16,true);o+=4;v.setUint16(o,1,true);o+=2;v.setUint16(o,channels,true);o+=2;v.setUint32(o,buffer.sampleRate,true);o+=4;v.setUint32(o,buffer.sampleRate*channels*2,true);o+=4;v.setUint16(o,channels*2,true);o+=2;v.setUint16(o,16,true);o+=2;str('data');v.setUint32(o,buffer.length*channels*2,true);o+=4;for(let i=0;i<buffer.length;i++)for(let c=0;c<channels;c++){let x=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2}return ab},
+ async processAudio(){if(!this.audioBuffer)return rubyToast('Load or generate audio first.');let b=this.audioBuffer;
+   if(document.getElementById('audioReverse')?.checked){ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const rev=ctx.createBuffer(b.numberOfChannels,b.length,b.sampleRate); for(let ch=0;ch<b.numberOfChannels;ch++){ const src=b.getChannelData(ch),dst=rev.getChannelData(ch); for(let i=0;i<b.length;i++)dst[i]=src[b.length-1-i]; } b=rev; }
+   const rate=b.sampleRate,channels=b.numberOfChannels,OC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OC)return rubyToast('This browser cannot render audio offline.');
+   const ctx=new OC(channels,b.length,rate),src=ctx.createBufferSource(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();src.buffer=b;src.playbackRate.value=(Number(document.getElementById('audioSpeed')?.value)||100)/100;gain.gain.value=(Number(document.getElementById('audioGain')?.value)||100)/100;filter.type='lowpass';filter.frequency.value=Number(document.getElementById('audioFilter')?.value)||12000;src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start();const out=await ctx.startRendering(),wav=this.bufferToWav(out),url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));this.audioBuffer=out;this.addAudioDownload(url,'ruby-edited-audio.wav');const st=document.getElementById('musicStatus');if(st)st.textContent='Effects applied (volume, filter, speed'+(document.getElementById('audioReverse')?.checked?', reversed':'')+'). Exported as WAV — download below.'}
+};
+
+// Model-specific workflow improvements: structured task plans and explicit quality checks.
+RubyModels.profiles.pro.depth=3;RubyModels.profiles.pro.steps=6;RubyModels.profiles.professional.depth=5;RubyModels.profiles.professional.steps=10;RubyModels.profiles.coding.depth=5;RubyModels.profiles.coding.steps=10;
+RubyModels.brains.pro.focus=['clarify the outcome','decompose into ordered steps','consider alternatives','check constraints and likely failure points','review the result'];
+RubyModels.brains.professional.focus=['define success criteria','identify stakeholders and constraints','separate facts from assumptions','decompose into workstreams','analyze risks and edge cases','compare viable approaches','produce a professional deliverable','run a consistency and completeness review','state limitations and unresolved items','give actionable next steps'];
+RubyModels.brains.coding.focus=['identify requirements and target environment','inspect existing code and preserve compatibility','design components and interfaces','implement the smallest complete solution','handle errors and edge cases','review security and data handling','check syntax and integration points','provide tests and expected results','document build and run steps','never claim an unperformed build or test'];
+const _rubySend=window.send;window.send=function(){const i=document.getElementById('inp');if(RubyStudio.contextText){i.value+='\n\nPlease use the following attached file contents as source material:\n'+RubyStudio.contextText;RubyStudio.contextText='';}return _rubySend();};
+window.addEventListener('paste',e=>{const items=Array.from(e.clipboardData?.items||[]);const files=items.map(x=>x.getAsFile()).filter(Boolean);if(files.length){const imgs=files.filter(f=>f.type.startsWith('image/'));const docs=files.filter(f=>!f.type.startsWith('image/'));if(imgs.length)RubyStudio.handleImages(imgs);if(docs.length)RubyStudio.handleFiles(docs);}});
+const _rubyPlan=RubyModels.plan.bind(RubyModels);RubyModels.plan=function(prompt,id=this.current){const p=_rubyPlan(prompt,id);p.checklist=this.brains[id]||p.checklist;p.review=(id==='professional'||id==='coding'||id==='pro');return p};
