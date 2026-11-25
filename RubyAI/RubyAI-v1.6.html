@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ruby AI — Pure Local Assistant</title>
+<style>
+:root{--r:#e0112b;--r2:#ff2e4d;--dark:#2b0007;--bg:#160005;--panel:#2a000a;--panel2:#3d0010;--text:#ffeef1;--mut:#ffb3bc;--line:#7a0a1e}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial;background:radial-gradient(1000px 600px at 20% -10%,#7a0a1e,transparent),var(--bg);color:var(--text)}
+header{display:flex;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.25);position:sticky;top:0;z-index:5}
+.gem{width:42px;height:42px;background:linear-gradient(135deg,var(--r2),#8f0018);clip-path:polygon(50% 0,100% 35%,80% 100%,20% 100%,0 35%);display:grid;place-items:center;font-size:20px}
+h1{margin:0;font-size:22px} .sub{color:var(--mut);font-size:13px}
+.layout{display:grid;grid-template-columns:280px 1fr;gap:0;min-height:calc(100vh - 71px)} @media(max-width:800px){.layout{grid-template-columns:1fr}aside{display:none}aside.open{display:block}}
+aside{border-right:1px solid var(--line);padding:14px;background:rgba(0,0,0,.2)} aside h3{color:#ff8a9a;margin:14px 0 6px}
+button{background:linear-gradient(180deg,var(--r2),var(--r));color:#fff;border:0;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:700} button.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+main{display:flex;flex-direction:column} #chat{flex:1;overflow:auto;padding:18px;max-width:980px;width:100%;margin:0 auto}
+.msg{max-width:85%;padding:12px 14px;border-radius:16px;margin:10px 0;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.user{margin-left:auto;background:linear-gradient(180deg,#ff2e4d,#b8001f)} .ruby{background:var(--panel);border:1px solid var(--line)}
+.msg code{background:#0006;padding:2px 5px;border-radius:6px} pre{background:#0d0003;border:1px solid var(--line);padding:12px;border-radius:12px;overflow:auto;white-space:pre}
+.composer{display:flex;gap:8px;padding:14px;border-top:1px solid var(--line);max-width:980px;width:100%;margin:0 auto}
+textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:52px;resize:vertical}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 9px;margin:3px;cursor:pointer;color:var(--mut);font-size:13px}
+.small{font-size:13px;color:var(--mut)}
+.filecard{background:linear-gradient(180deg,#4a0013,#2a000a);border:1px solid var(--r2);border-radius:14px;padding:12px;margin:10px 0;max-width:85%}
+.filecard b{font-size:16px} .filecard .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#3d0010;border:1px solid var(--r2);color:var(--text);padding:11px 16px;border-radius:12px;z-index:99;display:none;max-width:92vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#overlay{position:fixed;inset:0;background:rgba(10,0,3,.92);z-index:50;display:none;flex-direction:column}
+#overlay.open{display:flex} #ovBar{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#2a000a}
+#ovFrame{flex:1;width:100%;border:0;background:#fff} #ovBody{flex:1;overflow:auto;padding:16px}
+.chatitem{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px;margin:6px 0;cursor:pointer;background:var(--panel)} .chatitem.active{border-color:var(--r2);background:var(--panel2)} .chatitem span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal{position:fixed;inset:0;background:rgba(10,0,3,.9);z-index:60;display:none;place-items:center;padding:16px} .modal.open{display:grid}
+.card{background:var(--panel);border:1px solid var(--r2);border-radius:16px;padding:18px;max-width:440px;width:100%;max-height:88vh;overflow:auto}
+.card input[type=text],.card input[type=password]{width:100%;background:#160005;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;margin:5px 0 10px}
+.switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+</style></head><body>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.6</div></div>
+<div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
+<div class="layout"><aside id="side">
+<h3>💬 Chats</h3>
+<button style="width:100%" onclick="newChat()">＋ New Chat</button>
+<div id="chatTools" style="margin-top:8px;display:flex;gap:6px;align-items:center">
+<button class="ghost" id="trashBtn" onclick="toggleDeleteMode()">🗑 Trash</button>
+<span id="delTools" style="display:none;gap:6px;align-items:center"><label class="small"><input type="checkbox" id="selectAllBox" onchange="selectAllChats(this.checked)"> Select all</label><button onclick="askDeleteSelected()">Delete selected</button><button class="ghost" onclick="toggleDeleteMode()">Cancel</button></span>
+</div>
+<div id="chatList"></div>
+<h3>📋 Menus</h3>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost" onclick="openModal('memoryModal')">🧠 Memory</button><button class="ghost" onclick="openModal('settingsModal')">⚙️ Settings</button></div>
+<h3>🧠 Ruby Memory</h3><div class="stat" id="memStats">Loading…</div>
+<div class="small">Say: <b>remember that I like red cars</b> • <b>teach: the sky is blue</b> • <b>what do you remember?</b></div>
+<h3>⚡ Try me</h3>
+<div><span class="chip" onclick="ask('Help')">Help</span><span class="chip" onclick="ask('Write Python code for a calculator')">Python calculator</span><span class="chip" onclick="ask('Write JavaScript code for a todo app')">JS todo app</span><span class="chip" onclick="ask('Calculate 144 * 12 + 8')">Math</span><span class="chip" onclick="ask('Explain loops like I am 12')">Explain loops</span><span class="chip" onclick="ask('Write a short story about a ruby dragon')">Story</span><span class="chip" onclick="ask('Make a plan to learn coding in 7 days')">7-day plan</span><span class="chip" onclick="ask('Make me a game like Flappy Bird as an HTML file')">Flappy game file</span><span class="chip" onclick="ask('Make a zip file')">Make a ZIP</span><span class="chip" onclick="ask('Turn this into an XML file')">Turn into XML</span></div>
+<h3>🛠 Tools in this file</h3><div class="small">Chat • Long-term memory • Calculator • Code generator • JS code runner • Notes &amp; tasks • Writing • Explanations • Plans • Date/time • Jokes</div>
+<h3>Memory controls</h3><button class="ghost" onclick="clearMemory()">Clear memory</button> <button class="ghost" onclick="showMemory()">Show memory</button>
+<p class="small">Everything runs on YOUR device. Closing the tab does not erase memory — it is saved in this browser on this device.</p></aside>
+<main><div id="chat"></div><div class="composer"><textarea id="inp" placeholder="Ask Ruby anything…  Try: write code…, calculate…, remember that…, explain…" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&(!window.RubySettings||RubySettings.data.enterSend)){event.preventDefault();send()}"></textarea><button onclick="send()">Send ➤</button></div></main></div>
+<div id="overlay"><div id="ovBar"><span id="ovTitle" style="font-weight:800">Preview</span><span class="small" id="ovHint">Live preview — click around and use it. Ask Ruby for changes and watch them appear here.</span><span style="margin-left:auto"></span><button class="ghost" onclick="openFileInNewTab()">↗ Open in new tab</button><button class="ghost" onclick="downloadCurrent()">⬇ Download</button><button onclick="closePreview()">✕ Close</button></div><iframe id="ovFrame" sandbox="allow-scripts allow-modals allow-pointer-lock" style="display:none"></iframe><div id="ovBody" style="display:none"></div></div>
+
+<div id="toast"></div>
+<div class="modal" id="confirmModal"><div class="card"><h2 style="margin-top:0">🗑 Delete chats?</h2><p id="confirmText">Are you sure you want to delete these chats?</p><p class="small">This deletes them forever — there's no undo.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="ghost" onclick="closeModal('confirmModal')">No — cancel</button><button onclick="confirmDelete()">Yes — delete forever</button></div></div></div>
+<div class="modal" id="memoryModal"><div class="card"><h2 style="margin-top:0">🧠 Memory Menu</h2>
+<div class="stat" id="memStats2"></div>
+<p><button style="width:100%" onclick="exportChatMemory()">⬇ Export chat memory (all chats + what Ruby remembers)</button></p>
+<p><button class="ghost" style="width:100%" onclick="exportMemory()">⬇ Export Ruby's memory only</button></p>
+<p><button class="ghost" style="width:100%" onclick="closeModal('memoryModal');showMemory()">👁 Show what Ruby remembers</button></p>
+<p><button class="ghost" style="width:100%" onclick="toggleDeleteMode();closeModal('memoryModal')">🗑 Delete old chats (trash mode)</button></p>
+<p><button class="ghost" style="width:100%;border-color:#ff2e4d" onclick="if(confirm('Clear everything Ruby remembers on this device? Chats stay.')){clearMemory();updateMemModals();}">🧹 Clear Ruby's memory</button></p>
+<div style="text-align:right"><button onclick="closeModal('memoryModal')">✕ Close</button></div></div></div>
+<div class="modal" id="settingsModal"><div class="card"><h2 style="margin-top:0">⚙️ Settings</h2>
+<div id="toggles"></div>
+<h3 style="color:#ff8a9a">👤 Account</h3>
+<div id="accountArea"></div>
+<h3 style="color:#ff8a9a">🔄 Sync with Ruby AI Desktop</h3>
+<p class="small">Enter your Ruby account info to sync this device with Ruby AI Desktop.</p>
+<input type="text" id="syncUser" placeholder="Please enter your account info (username or email)">
+<input type="password" id="syncPass" placeholder="Please enter your password">
+<button style="width:100%" onclick="doSync()">🔄 Sync now</button>
+<p class="small" id="syncStatus"></p>
+<div style="text-align:right;margin-top:10px"><button onclick="closeModal('settingsModal')">✕ Close</button></div></div></div>
+<script>
+"use strict";
+/* ============================================================
+   RUBY ARCHITECTURE v1.0 — pure local, no external AI APIs
+   Layers: Tokenizer -> Intent Engine -> Planner -> Knowledge
+           + CodeGen + Tools -> Memory (episodic/semantic/working)
+   Others can build their own AI by replacing Knowledge/CodeGen
+   and keeping Memory + Intent + Planner. See ARCHITECTURE.md
+   ============================================================ */
+const RubyMemory = {
+  key:"ruby_ai_memory_v1",
+  data:{facts:{}, taught:{}, notes:[], tasks:[], history:[], name:"", turns:0, created:Date.now()},
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r);}catch(e){} },
+  save(){ if(window.RubySettings && !RubySettings.data.memory) { updateStats(); return; } try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} updateStats(); },
+  bytes(){ return (localStorage.getItem(this.key)||"").length; },
+  remember(k,v){ this.data.facts[k.toLowerCase()]=v; this.save(); },
+  learn(k,v){ this.data.taught[k.toLowerCase()]=v; this.save(); }
+};
+RubyMemory.load();
+
+const Knowledge = {
+  loops:"A loop repeats code so you don't write it over and over.\n\n• for loop — repeat a known number of times.\nExample (JavaScript): for (let i=0;i<5;i++) console.log(i);\n• while loop — repeat while a condition is true.\nExample: while (hungry) eat();\n\nThink of it like brushing each tooth — same action, repeated until done.",
+  variables:"A variable is a labelled box that stores a value.\nExample: let score = 10;  — the box is called 'score' and holds 10. You can change it later: score = 15;",
+  functions:"A function is a reusable recipe. You define it once, then call it whenever you need it.\nExample (Python):\ndef greet(name):\n    return 'Hello ' + name\n\ngreet('Wyatt') → Hello Wyatt",
+  recursion:"Recursion is when a function calls itself with a smaller problem until it reaches a stopping case.\nExample: factorial(5) = 5 × factorial(4) … down to factorial(1)=1, so 5×4×3×2×1 = 120.",
+  html:"HTML is the skeleton of a web page. Tags like <h1> (heading), <p> (paragraph), <button> and <img> tell the browser what each part is. CSS paints it, JavaScript makes it move.",
+  css:"CSS is how a web page looks — colours, sizes, spacing and layout. Example: h1 { color: red; } makes headings red.",
+  javascript:"JavaScript is the language that makes web pages interactive. It runs in every browser, can change the page, respond to clicks, do maths, store data, and much more.",
+  python:"Python is a readable programming language used for apps, automation, data and AI work. Example: print('Hello') shows Hello on screen.",
+  ai:"An AI assistant takes your words, works out what you mean (intent), plans steps, uses tools/knowledge, and answers. Ruby AI does all of that locally on your device — no outside AI service is called.",
+  rubyos:"RubyOS is Wyatt's browser-based operating system. Ruby AI is its standalone companion — separate from RubyOS, so it can be downloaded and used on its own."
+};
+const CodeGen = {
+  detectLang(t){ if(/python/.test(t))return"python"; if(/html|website|web ?page/.test(t))return"html"; return"javascript"; },
+  topic(t){ if(/flappy/.test(t))return"flappy"; if(/calculator/.test(t))return"calculator"; if(/todo|to-do|task list/.test(t))return"todo"; if(/game|clicker/.test(t))return"game"; if(/countdown|timer/.test(t))return"timer"; if(/sort/.test(t))return"sort"; return"generic"; },
+  generate(prompt){
+    const lang=this.detectLang(prompt.toLowerCase()), top=this.topic(prompt.toLowerCase());
+    
+    if(top==="flappy") return {lang:"html",code:`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Flappy Ruby</title><style>body{margin:0;background:#160005;display:grid;place-items:center;height:100vh}canvas{background:linear-gradient(#5b0013,#2a000a);border:2px solid #ff2e4d;border-radius:12px}</style></head>
+<body><canvas id="c" width="360" height="480"></canvas><script>
+const cv=document.getElementById('c'),x=cv.getContext('2d');let y=220,v=0,pipes=[],score=0,dead=false,frame=0;
+function flap(){ if(dead){y=220;v=0;pipes=[];score=0;dead=false;} v=-8; }
+cv.onclick=flap; document.onkeydown=e=>{if(e.code==='Space'){e.preventDefault();flap();}};
+function loop(){ if(!x) return; frame++; v+=0.45; y+=v;
+ if(frame%95===0) pipes.push({px:360,gap:110+Math.random()*160});
+ x.clearRect(0,0,360,480); x.fillStyle='#e0112b';
+ for(const p of pipes){ p.px-=2.4; x.fillRect(p.px,0,52,p.gap); x.fillRect(p.px,p.gap+130,52,480); if(p.px===90) score++; if(52>p.px&&20<p.px+52&&(y<p.gap||y>p.gap+130)) dead=true; }
+ pipes=pipes.filter(p=>p.px>-60);
+ x.fillStyle='#ff2e4d'; x.beginPath(); x.arc(40,y,14,0,7); x.fill();
+ x.fillStyle='#fff'; x.font='bold 22px Arial'; x.fillText('Score: '+score,12,28);
+ if(y>466||y<0) dead=true; if(dead){ x.fillStyle='#fff'; x.font='bold 26px Arial'; x.fillText('Game over — click to retry',28,240); }
+ requestAnimationFrame(loop); } loop();
+<\/script></body></html>`};
+    if(lang==="python"&&top==="calculator") return {lang,code:`# Ruby AI — Python Calculator\ndef calc(a, op, b):\n    if op == '+': return a + b\n    if op == '-': return a - b\n    if op == '*': return a * b\n    if op == '/': return a / b if b != 0 else 'Cannot divide by zero'\n    return 'Unknown operator'\n\nprint(calc(12, '*', 8))  # 96`};
+    if(lang==="python") return {lang,code:`# Ruby AI — Python starter for: ${prompt}\ndef main():\n    items = []\n    while True:\n        text = input('Type something (or quit): ')\n        if text.lower() == 'quit': break\n        items.append(text)\n        print(f'Added. You now have {len(items)} item(s).')\n    print('Your items:', items)\n\nif __name__ == '__main__':\n    main()`};
+    if(lang==="html") return {lang,code:`<!DOCTYPE html>\n<html><head><meta charset="utf-8"><title>My Page by Ruby AI</title>\n<style>body{font-family:Arial;background:#160005;color:#ffeef1;text-align:center}h1{color:#ff2e4d}button{background:#e0112b;color:#fff;border:0;padding:10px 16px;border-radius:10px}</style></head>\n<body><h1>Hello from Ruby AI</h1><p id="msg">Click the button.</p><button onclick="document.getElementById('msg').textContent='It works!'">Click me</button></body></html>`};
+    if(top==="todo") return {lang,code:`// Ruby AI — JavaScript Todo App (works in any browser console / page)\nlet todos = [];\nfunction addTodo(text){ todos.push({text, done:false}); render(); }\nfunction toggleTodo(i){ todos[i].done = !todos[i].done; render(); }\nfunction render(){ console.log(todos.map((t,i)=> (t.done?'[x] ':'[ ] ')+i+'. '+t.text).join('\\n') || 'No tasks yet'); }\naddTodo('Try Ruby AI'); addTodo('Build something red'); render();`};
+    if(top==="calculator") return {lang,code:`// Ruby AI — JavaScript Calculator\nfunction calc(a, op, b){\n  switch(op){ case '+': return a+b; case '-': return a-b; case '*': return a*b; case '/': return b===0 ? 'Cannot divide by zero' : a/b; default: return 'Unknown operator'; }\n}\nconsole.log(calc(12,'*',8)); // 96`};
+    if(top==="game") return {lang,code:`// Ruby AI — Ruby Clicker game core\nlet rubies = 0, perClick = 1;\nfunction clickRuby(){ rubies += perClick; console.log('◆ Rubies:', rubies); }\nfunction upgrade(){ if(rubies>=20){ rubies-=20; perClick++; console.log('Upgrade! Per click:', perClick);} else console.log('Need 20 rubies'); }\n// Call clickRuby() to play in the console`};
+    if(top==="timer") return {lang,code:`// Ruby AI — Countdown timer\nfunction countdown(seconds){ let s=seconds; const id=setInterval(()=>{ console.log(s); if(--s<0){ clearInterval(id); console.log('Time up!'); } },1000); }\ncountdown(10);`};
+    if(top==="sort") return {lang,code:`// Ruby AI — Sorting example\nconst numbers = [5, 2, 9, 1, 7];\nconst sorted = [...numbers].sort((a,b)=>a-b);\nconsole.log('Original:', numbers);\nconsole.log('Sorted:', sorted); // [1, 2, 5, 7, 9]`};
+    return {lang,code:`// Ruby AI — starter code for: ${prompt}\nfunction main(){\n  const message = 'Hello from Ruby AI';\n  console.log(message);\n  // TODO: add your logic here\n  return message;\n}\nmain();`};
+  }
+};
+
+/* ===== RubyFiles v1.1: real downloadable files, in-app preview, live edits, ZIP ===== */
+const RubyFiles = {
+  items:{}, lastId:null, seq:0, currentPreviewId:null,
+  extMime:{html:"text/html",xml:"application/xml",json:"application/json",txt:"text/plain",md:"text/markdown",py:"text/x-python",js:"text/javascript",css:"text/css",csv:"text/csv",svg:"image/svg+xml",zip:"application/zip"},
+  create(name, content, files){
+    const id="f"+(++this.seq); const type=(name.split(".").pop()||"txt").toLowerCase();
+    this.items[id]={id,name,type,content,files:files||null,updated:Date.now()};
+    this.lastId=id; return this.items[id];
+  },
+  last(){ return this.lastId ? this.items[this.lastId] : null; },
+  blobFor(f){
+    if(f.type==="zip" && f.files) return new Blob([Zip.create(f.files)],{type:"application/zip"});
+    return new Blob([f.content||""],{type:this.extMime[f.type]||"text/plain"});
+  },
+  size(f){ if(f.type==="zip"&&f.files) return f.files.reduce((a,x)=>a+x.content.length,0); return (f.content||"").length; }
+};
+const Zip = {
+  crcTable:null,
+  crc32(bytes){ if(!this.crcTable){ this.crcTable=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; this.crcTable[n]=c>>>0; } } let c=0xFFFFFFFF; for(let i=0;i<bytes.length;i++) c=this.crcTable[(c^bytes[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; },
+  create(files){ // store-only ZIP (no compression) — valid .zip any unzipper opens
+    const enc=new TextEncoder(); let chunks=[], central=[], offset=0;
+    const u16=v=>new Uint8Array([v&255,(v>>8)&255]); const u32=v=>new Uint8Array([v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255]);
+    const push=a=>{chunks.push(a); offset+=a.length;};
+    for(const f of files){ const name=enc.encode(f.name); const data=typeof f.content==="string"?enc.encode(f.content):f.content; const crc=this.crc32(data); const start=offset;
+      push(u32(0x04034b50)); push(u16(20)); push(u16(0)); push(u16(0)); push(u16(0)); push(u16(0)); push(u32(crc)); push(u32(data.length)); push(u32(data.length)); push(u16(name.length)); push(u16(0)); push(name); push(data);
+      central.push({name,crc,size:data.length,start}); }
+    const cdStart=offset;
+    for(const c of central){ push(u32(0x02014b50)); push(u16(20)); push(u16(20)); push(u16(0)); push(u16(0)); push(u16(0)); push(u16(0)); push(u32(c.crc)); push(u32(c.size)); push(u32(c.size)); push(u16(c.name.length)); push(u16(0)); push(u16(0)); push(u16(0)); push(u16(0)); push(u32(0)); push(u32(c.start)); push(c.name); }
+    push(u32(0x06054b50)); push(u16(0)); push(u16(0)); push(u16(central.length)); push(u16(central.length)); push(u32(offset-cdStart)); push(u32(cdStart)); push(u16(0));
+    const out=new Uint8Array(offset); let pos=0; for(const ch of chunks){ out.set(ch,pos); pos+=ch.length; } return out;
+  },
+  list(bytes){ // read a ZIP's contents from its central directory
+    const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength); const dec=new TextDecoder(); let eocd=-1;
+    for(let i=bytes.length-22;i>=0;i--){ if(dv.getUint32(i,true)===0x06054b50){ eocd=i; break; } }
+    if(eocd<0) return [];
+    const count=dv.getUint16(eocd+10,true); let off=dv.getUint32(eocd+16,true); const out=[];
+    for(let n=0;n<count;n++){ if(dv.getUint32(off,true)!==0x02014b50) break;
+      const method=dv.getUint16(off+10,true), size=dv.getUint32(off+20,true), nl=dv.getUint16(off+28,true), xl=dv.getUint16(off+30,true), cl=dv.getUint16(off+32,true), lho=dv.getUint32(off+42,true);
+      const name=dec.decode(bytes.slice(off+46,off+46+nl));
+      const lnl=dv.getUint16(lho+26,true), lxl=dv.getUint16(lho+28,true); const start=lho+30+lnl+lxl;
+      out.push({name,size,method,content:bytes.slice(start,start+size)}); off+=46+nl+xl+cl; }
+    return out;
+  }
+};
+function fileDataURI(f){
+  if(f.type==="zip" && f.files){ const bytes=Zip.create(f.files); let bin=""; const CH=0x8000; for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); return "data:application/zip;base64,"+btoa(bin); }
+  return "data:"+(RubyFiles.extMime[f.type]||"text/plain")+";charset=utf-8,"+encodeURIComponent(f.content||"");
+}
+function rubyToast(msg, ms){ const t=document.getElementById("toast"); if(!t) return; t.textContent=msg; t.style.display="block"; clearTimeout(window._toastTimer); window._toastTimer=setTimeout(()=>{ t.style.display="none"; }, ms||4200); }
+async function downloadFile(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+  // 1) Real Save dialog (Edge/Chrome) — a genuine save the browser shows you
+  if(window.showSaveFilePicker){
+    try{ rubyToast("💾 Pick where to save "+f.name+"…");
+      const handle=await window.showSaveFilePicker({ suggestedName:f.name });
+      const writable=await handle.createWritable(); await writable.write(RubyFiles.blobFor(f)); await writable.close();
+      rubyToast("✅ Saved "+f.name+" — check the folder you picked."); return;
+    }catch(e){ if(e && e.name==="AbortError"){ rubyToast("Save cancelled — nothing downloaded."); return; } /* any other error: fall through to link methods */ }
+  }
+  // 2) Blob link, 3) data-file link
+  const a=document.createElement("a"); a.download=f.name; a.rel="noopener"; a.style.display="none";
+  let blobUrl=null;
+  try{ blobUrl=URL.createObjectURL(RubyFiles.blobFor(f)); a.href=blobUrl; }catch(e){ try{ a.href=fileDataURI(f); }catch(e2){} }
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); if(blobUrl) URL.revokeObjectURL(blobUrl); },1500);
+  rubyToast("⬇ Downloading "+f.name+" — check your browser's downloads bar. If nothing appears, your viewer is blocking downloads: open RubyAI.html directly in Edge/Chrome and try there.", 7000);
+}
+function openFileInNewTab(id){ const f=RubyFiles.items[id||RubyFiles.currentPreviewId||RubyFiles.lastId]; if(!f) return;
+  const a=document.createElement("a"); a.target="_blank"; a.rel="noopener"; a.style.display="none";
+  try{ a.href=URL.createObjectURL(RubyFiles.blobFor(f)); }catch(e){ a.href=fileDataURI(f); }
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1500);
+}
+function downloadCurrent(){ downloadFile(); }
+function cleanupPreviewDom(){ (window._pvStyles||[]).forEach(s=>{ try{s.remove()}catch(e){} }); window._pvStyles=[]; }
+function renderHtmlInto(container, htmlDoc){
+  cleanupPreviewDom(); container.innerHTML="";
+  const holder=document.createElement("div"); holder.id="pvHolder"; holder.style.cssText="min-height:60vh;background:#fff;color:#111;border-radius:10px;padding:6px;overflow:auto";
+  let parsed=null; try{ parsed=new DOMParser().parseFromString(htmlDoc,"text/html"); }catch(e){}
+  if(parsed && parsed.body){
+    window._pvStyles=[];
+    parsed.querySelectorAll("style").forEach(s=>{ const st=document.createElement("style"); st.textContent=s.textContent; document.head.appendChild(st); window._pvStyles.push(st); });
+    holder.innerHTML=parsed.body.innerHTML;
+    const scripts=[...holder.querySelectorAll("script")]; const codes=scripts.map(s=>s.textContent); scripts.forEach(s=>s.remove());
+    container.appendChild(holder);
+    codes.forEach(code=>{ if(!code.trim()) return; const sc=document.createElement("script"); sc.textContent=code; holder.appendChild(sc); });
+  } else { holder.textContent=htmlDoc; container.appendChild(holder); }
+}
+function openPreview(id){
+  const f=RubyFiles.items[id]; if(!f) return; RubyFiles.currentPreviewId=id;
+  document.getElementById("ovTitle").textContent="◆ "+f.name;
+  const ov=document.getElementById("overlay"), fr=document.getElementById("ovFrame"), bd=document.getElementById("ovBody");
+  ov.classList.add("open"); fr.style.display="none";
+  bd.style.display="block";
+  if(f.type==="zip"){ renderZipView(f,bd); return; }
+  if(f.type==="html"){ renderHtmlInto(bd, f.content); return; }
+  if(f.type==="svg"){ cleanupPreviewDom(); bd.innerHTML=""; const holder=document.createElement("div"); holder.style.cssText="min-height:60vh;display:grid;place-items:center;background:#160005;border-radius:10px"; holder.innerHTML=f.content; bd.appendChild(holder); return; }
+  cleanupPreviewDom(); bd.innerHTML=""; const pre=document.createElement("pre"); pre.textContent=f.content; bd.appendChild(pre);
+}
+function closePreview(){ cleanupPreviewDom(); document.getElementById("overlay").classList.remove("open"); RubyFiles.currentPreviewId=null; }
+function refreshPreviewIfOpen(f){ if(RubyFiles.currentPreviewId===f.id && document.getElementById("overlay").classList.contains("open")) openPreview(f.id); }
+function renderZipView(f,container){
+  container.innerHTML=""; const title=document.createElement("div"); title.innerHTML="<h2 style='margin:4px 0'>📦 Inside "+f.name+"</h2><p class='small'>Click any file inside to preview it. Or download the whole ZIP with the button above.</p>"; container.appendChild(title);
+  const entries = f.files ? f.files.map(x=>({name:x.name,size:x.content.length,content:x.content})) : Zip.list(new TextEncoder().encode(f.content||""));
+  if(!entries.length){ container.innerHTML+="<p>This ZIP looks empty.</p>"; return; }
+  for(const e of entries){ const d=document.createElement("div"); d.className="zipitem"; d.textContent="📄 "+e.name+"  —  "+e.size+" bytes"; d.onclick=()=>{ const isHtml=/\.html?$/i.test(e.name); const tmp=RubyFiles.create(e.name.replace(/[^\w.\-]/g,"_"), typeof e.content==="string"?e.content:new TextDecoder().decode(e.content)); openPreview(tmp.id); }; container.appendChild(d); }
+}
+function renderFileCard(f){ if(window.RubySettings && !RubySettings.data.fileCards) return;
+  const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="filecard";
+  const icon = f.type==="zip"?"📦":(f.type==="html"?"🌐":"📄");
+  d.innerHTML = icon+" <b></b><div class='small'></div>";
+  d.querySelector("b").textContent=f.name;
+  d.querySelector(".small").textContent = (f.type==="zip"&&f.files? f.files.length+" files inside • ":"") + RubyFiles.size(f) + " bytes • made by Ruby, ready to use";
+  const row=document.createElement("div"); row.className="row";
+  const mk=(label,fn)=>{ const b=document.createElement("button"); b.textContent=label; b.onclick=()=>fn(f.id); row.appendChild(b); };
+  if(f.type==="html"||f.type==="svg") mk("▶ Open & use it here", openPreview);
+  else if(f.type==="zip") mk("📦 See what's inside", openPreview);
+  else mk("👁 View", openPreview);
+  mk("⬇ Download", downloadFile); mk("↗ New tab", openFileInNewTab);
+  d.appendChild(row); c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function maybeRenderLastFile(beforeId){ const f=RubyFiles.last(); if(f && f.id!==beforeId) renderFileCard(f); }
+
+/* ===== RubyMath v2 — full redesign: exact fractions + real parser =====
+   Understands: 12*8, 12 × 8, 12 x 8, "12 times 8", "divide 100 by 4",
+   fractions (1/2 + 1/3 = 5/6 exactly), mixed numbers (1 1/2), decimals,
+   % of, fraction of, squared/cubed, square roots, factorials, brackets,
+   order of operations, averages, and number words (five times six). */
+function bgcd(a,b){ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ [a,b]=[b,a%b]; } return a||1n; }
+class Frac {
+  constructor(n,d=1n){ if(d===0n) throw new Error("div0"); if(d<0n){ n=-n; d=-d; } const g=bgcd(n,d); this.n=n/g; this.d=d/g; }
+  static fromDecimal(s){ if(s.includes(".")){ const [a,b]=s.split("."); const den=10n**BigInt(b.length); return new Frac(BigInt(a||"0")*den + (a.startsWith("-")?-1n:1n)*BigInt(b||"0"), den); } return new Frac(BigInt(s)); }
+  add(o){ return new Frac(this.n*o.d+o.n*this.d, this.d*o.d); } sub(o){ return new Frac(this.n*o.d-o.n*this.d, this.d*o.d); }
+  mul(o){ return new Frac(this.n*o.n, this.d*o.d); } div(o){ if(o.n===0n) throw new Error("div0"); return new Frac(this.n*o.d, this.d*o.n); }
+  neg(){ return new Frac(-this.n, this.d); }
+  pow(k){ if(k>=0n) return new Frac(this.n**k, this.d**k); return new Frac(this.d**(-k), this.n**(-k)); }
+  toNumber(){ return Number(this.n)/Number(this.d); }
+  isSquare(){ const s=x=>{ if(x<0n) return null; const r=BigInt(Math.round(Math.sqrt(Number(x)))); return r*r===x?r:null; }; const a=s(this.n), b=s(this.d); return (a!==null&&b!==null)?new Frac(a,b):null; }
+  toString(){ if(this.d===1n) return this.n.toString(); const neg=this.n<0n; const an=neg?-this.n:this.n;
+    if(an>this.d){ const whole=an/this.d, rem=an%this.d; if(rem===0n) return (neg?"-":"")+whole.toString(); return `${neg?"-":""}${whole} ${rem}/${this.d} (${this.n}/${this.d})`; }
+    return `${this.n}/${this.d}`; }
+}
+const RubyMath = {
+  numWords:{zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90},
+  wordsToNumbers(s){ // "twenty five" -> 25, "one hundred and five" -> 105 (simple, for maths phrases)
+    return s.replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and|point)\b/g, (m)=>{
+      if(m==="and") return "§and§"; if(m==="point") return "§point§"; if(m==="hundred") return "§hundred§"; if(m==="thousand") return "§thousand§"; return "§"+this.numWords[m]+"§";
+    }).replace(/§(\d+)§(?:§and§)?§hundred§(?:§and§)?(?:§(\d+)§)?/g, (m,a,b)=>String(Number(a)*100+(b?Number(b):0)))
+      .replace(/§(\d+)§§thousand§/g, (m,a)=>String(Number(a)*1000))
+      .replace(/§(\d+)§§point§§(\d+)§/g, (m,a,b)=>a+"."+b)
+      .replace(/§(\d+)§\s+§(\d+)§/g, (m,a,b)=>String(Number(a)+Number(b)))
+      .replace(/§(\d+)§/g, "$1").replace(/§[a-z]+§/g," ");
+  },
+  normalise(raw){
+    let s = " "+raw.toLowerCase().trim()+" ";
+    s = s.replace(/\bmultiply\s+([\d\s.()/]+?)\s+by\s+([\d\s.()/]+?)\s*(?=\?|$|\s=)/, " $1 * $2 ");
+    s = s.replace(/\bdivide\s+([\d\s.()/]+?)\s+by\s+([\d\s.()/]+?)\s*(?=\?|$|\s=)/, " $1 / $2 ");
+    s = s.replace(/\badd\s+([\d\s.()/]+?)\s+and\s+([\d\s.()/]+?)\s*(?=\?|$)/, " $1 + $2 ");
+    s = s.replace(/\bsubtract\s+([\d\s.()/]+?)\s+from\s+([\d\s.()/]+?)\s*(?=\?|$)/, " $2 - $1 ");
+    s = s.replace(/(\d+\s*\/\s*\d+)\s+divided by\s+(\d+\s*\/\s*\d+)/g, " (($1) / ($2)) ");
+    s = s.replace(/\bsimplify\b/g, " ").replace(/:/g, " ");
+    s = s.replace(/×/g," * ").replace(/÷/g," / ").replace(/−|–/g,"-");
+    s = this.wordsToNumbers(s);
+    s = s.replace(/(\d+)\s+(\d+)\s*\/\s*(\d+)/g, (m,a,b,c)=>`((${a}*${c}+${b})/${c})`); // mixed number 1 1/2
+    s = s.replace(/\bsquare root of\b/g, " sqrt(").replace(/\bsqrt of\b/g, " sqrt(");
+    if(s.includes("sqrt(") && !s.trim().endsWith(")")) s = s + ")"; // sqrt of 16 -> sqrt( 16 ) approx: close at end
+    s = s.replace(/\bsquared\b/g, "^2").replace(/\bcubed\b/g, "^3");
+    s = s.replace(/\bdivided by\b/g, " / ").replace(/\bmultiplied by\b/g, " * ").replace(/\btimes\b/g, " * ")
+         .replace(/\bplus\b/g, " + ").replace(/\bminus\b/g, " - ").replace(/\bsubtract\b/g, " - ")
+         .replace(/\bover\b/g, " / ").replace(/\bpercent\b/g, "%").replace(/\bper cent\b/g, "%");
+    s = s.replace(/(\d)\s*x\s*(\d)/g, "$1 * $2"); // 12 x 8
+    s = s.replace(/\bof\b/g, " * "); // 3/4 of 20, 50% of 200 (only reached in maths context)
+    s = s.replace(/^(.*?\b)(what is|what's|calculate|calc|compute|solve|how much is|how many is|work out|tell me)\b/g, " ");
+    s = s.replace(/equals?|is it|\?|=|please/g, " ");
+    return s.trim();
+  },
+  tokenise(s){
+    const toks=[]; let i=0;
+    while(i<s.length){ const c=s[i];
+      if(/\s/.test(c)){ i++; continue; }
+      if(/[0-9.]/.test(c)){ let j=i; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num", v:s.slice(i,j)}); i=j; continue; }
+      if("+-*/^%!(),".includes(c)){ toks.push({t:c}); i++; continue; }
+      if(/[a-z]/.test(c)){ let j=i; while(j<s.length&&/[a-z]/.test(s[j])) j++; toks.push({t:"fn", v:s.slice(i,j)}); i=j; continue; }
+      throw new Error("badchar "+c);
+    }
+    return toks;
+  },
+  parse(toks){ // -> AST
+    let pos=0; const peek=()=>toks[pos], next=()=>toks[pos++];
+    function parseExpr(){ let n=parseTerm(); while(peek()&&(peek().t==="+"||peek().t==="-")){ const op=next().t; n={k:"bin",op,l:n,r:parseTerm()}; } return n; }
+    function parseTerm(){ let n=parseFactor(); while(peek()&&(peek().t==="*"||peek().t==="/")){ const op=next().t; n={k:"bin",op,l:n,r:parseFactor()}; } return n; }
+    function parseFactor(){ let n=parseUnary(); while(peek()&&peek().t==="^"){ next(); n={k:"bin",op:"^",l:n,r:parseUnary()}; } return n; }
+    function parseUnary(){ if(peek()&&peek().t==="-"){ next(); return {k:"neg", x:parseUnary()}; } if(peek()&&peek().t==="+"){ next(); return parseUnary(); } return parsePostfix(); }
+    function parsePostfix(){ let n=parseAtom(); while(peek()&&(peek().t==="%"||peek().t==="!")){ const op=next().t; n={k:op==="%"?"pct":"fact", x:n}; } return n; }
+    function parseAtom(){ const tk=next(); if(!tk) throw new Error("empty");
+      if(tk.t==="num") return {k:"num", v:tk.v};
+      if(tk.t==="("){ const n=parseExpr(); if(!peek()||next().t!==")") throw new Error("paren"); return n; }
+      if(tk.t==="fn"){ if(tk.v==="pi") return {k:"num", v:"3.141592653589793"}; if(tk.v==="e") return {k:"num", v:"2.718281828459045"};
+        if(!peek()||next().t!=="(") throw new Error("fnparen"); const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("fnparen2"); return {k:"fn", v:tk.v, x:arg}; }
+      throw new Error("atom "+tk.t); }
+    const ast=parseExpr(); if(pos!==toks.length) throw new Error("leftover"); return ast;
+  },
+  evalExact(node){
+    switch(node.k){
+      case "num": return Frac.fromDecimal(node.v);
+      case "neg": return this.evalExact(node.x).neg();
+      case "pct": return this.evalExact(node.x).div(new Frac(100n));
+      case "fact": { const v=this.evalExact(node.x); if(v.d!==1n||v.n<0n||v.n>170n) throw new Error("fact"); let r=1n; for(let i=2n;i<=v.n;i++) r*=i; return new Frac(r); }
+      case "fn": { const v=this.evalExact(node.x);
+        if(node.v==="sqrt"){ const sq=v.isSquare(); if(sq) return sq; throw new Error("irrational"); }
+        if(node.v==="abs") return v.n<0n?v.neg():v; throw new Error("fn"); }
+      case "bin": { const a=this.evalExact(node.l), b=this.evalExact(node.r);
+        if(node.op==="+") return a.add(b); if(node.op==="-") return a.sub(b); if(node.op==="*") return a.mul(b); if(node.op==="/") return a.div(b);
+        if(node.op==="^"){ if(b.d!==1n) throw new Error("pow"); return a.pow(b.n); } throw new Error("op"); }
+    } throw new Error("eval");
+  },
+  evalFloat(node){
+    switch(node.k){
+      case "num": return parseFloat(node.v);
+      case "neg": return -this.evalFloat(node.x);
+      case "pct": return this.evalFloat(node.x)/100;
+      case "fact": { const v=this.evalFloat(node.x); let r=1; for(let i=2;i<=v;i++) r*=i; return r; }
+      case "fn": { const v=this.evalFloat(node.x); if(node.v==="sqrt") return Math.sqrt(v); if(node.v==="abs") return Math.abs(v); if(node.v==="round") return Math.round(v); if(node.v==="floor") return Math.floor(v); if(node.v==="ceil") return Math.ceil(v); throw new Error("fn"); }
+      case "bin": { const a=this.evalFloat(node.l), b=this.evalFloat(node.r);
+        if(node.op==="+") return a+b; if(node.op==="-") return a-b; if(node.op==="*") return a*b; if(node.op==="/"){ if(b===0) throw new Error("div0"); return a/b; } if(node.op==="^") return Math.pow(a,b); throw new Error("op"); }
+    } throw new Error("eval");
+  },
+  looksMathy(raw){ const s=raw.toLowerCase(); if(!/(\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)/.test(s)) return false;
+    return /[+\-*/^×÷%=]|\b(times|divide|divided|multiply|multiplied|plus|minus|add|subtract|percent|square|sqrt|root|fraction|average|mean|sum|difference|product|quotient|half|quarter|of)\b/.test(s) || /^\s*(what is|calculate|calc|solve|compute|how much is)\s+[\d(]/.test(s) || /^\s*[\d(]/.test(s); },
+  trySolve(raw){
+    const low=raw.toLowerCase();
+    // averages / sums of lists
+    let m = low.match(/(?:average|mean) of ([0-9.,\sand]+)/); 
+    if(m){ const nums=m[1].split(/,|and/).map(x=>parseFloat(x)).filter(x=>!isNaN(x)); if(nums.length>1){ const avg=nums.reduce((a,b)=>a+b,0)/nums.length; return `The average of ${nums.join(", ")} is ${this.fmtFloat(avg)}  (added together = ${this.fmtFloat(nums.reduce((a,b)=>a+b,0))}, divided by ${nums.length}).`; } }
+    if(!this.looksMathy(raw)) return null;
+    try{
+      const norm=this.normalise(raw); if(!norm || !/\d/.test(norm)) return null;
+      const ast=this.parse(this.tokenise(norm));
+      try{ const f=this.evalExact(ast); const dec=f.toNumber(); const fs=f.toString();
+        return fs.includes("/") ? `${this.prettyExpr(raw)} = ${fs}  ≈ ${this.fmtFloat(dec)}` : `${this.prettyExpr(raw)} = ${fs}`;
+      }catch(e){ if(e.message==="div0") return "That one divides by zero — and dividing by zero isn't allowed in maths, so there's no answer for it.";
+        const v=this.evalFloat(ast); if(!isFinite(v)) return null; return `${this.prettyExpr(raw)} = ${this.fmtFloat(v)}`; }
+    }catch(e){ if(e.message==="div0") return "That one divides by zero — and dividing by zero isn't allowed in maths, so there's no answer for it."; return null; }
+  },
+  prettyExpr(raw){ return raw.trim().replace(/\?+$/,""); },
+  fmtFloat(v){ if(Number.isInteger(v)) return String(v); return String(Math.round(v*1e10)/1e10); }
+};
+function safeMath(expr){ const r=RubyMath.trySolve("calculate "+expr); if(!r) return null; const m=r.match(/= (.+?)(?:  |$)/); if(!m) return null; const n=parseFloat(m[1]); return isNaN(n)?null:n; }
+function tokenize(t){ return t.toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean); }
+const RubyBrain = {
+  reply(raw){
+    const t = raw.trim(), low = t.toLowerCase(); RubyMemory.data.turns++;
+    RubyMemory.data.history.push({who:"user",text:t,at:Date.now()}); if(RubyMemory.data.history.length>200) RubyMemory.data.history=RubyMemory.data.history.slice(-200);
+    let out = this.think(t, low); RubyMemory.data.history.push({who:"ruby",text:out,at:Date.now()}); RubyMemory.save(); return out;
+  },
+  think(t, low){
+    // Memory: name
+    let m = low.match(/my name is ([a-z]+)/); if(m){ RubyMemory.data.name=m[1]; RubyMemory.save(); return `Nice to meet you, ${cap(m[1])}. I'll remember your name on this device.`; }
+    if(/what('?s| is) my name/.test(low)) return RubyMemory.data.name ? `Your name is ${cap(RubyMemory.data.name)} — you told me and I remembered it.` : "You haven't told me your name yet. Say: my name is …";
+    // Memory: remember that X is Y / remember that ...
+    m = t.match(/remember that (.+?) is (.+)/i); if(m){ RubyMemory.remember(m[1], m[2]); return `Got it — I'll remember that ${m[1]} is ${m[2]}.`; }
+    m = t.match(/remember that (.+)/i); if(m){ RubyMemory.remember("note "+Date.now(), m[1]); return `Got it — I'll remember that: ${m[1]}`; }
+    m = t.match(/teach:\s*(.+?)\s+is\s+(.+)/i); if(m){ RubyMemory.learn(m[1], m[2]); return `Learned. From now on, on this device, I'll know: ${m[1]} is ${m[2]}.`; }
+    if(/what do you remember|show (me )?your memory|show memory/.test(low)) return showMemoryText();
+    m = low.match(/what is (.+?)\?*$/); // taught facts lookup happens below too
+    // Recall taught / facts
+    for(const k in RubyMemory.data.taught){ if(low.includes(k)) return `${cap(k)} is ${RubyMemory.data.taught[k]} — that's what you taught me.`; }
+    for(const k in RubyMemory.data.facts){ if(k.startsWith("note")) continue; if(low.includes(k)) return `${cap(k)} is ${RubyMemory.data.facts[k]} — I remembered that for you.`; }
+    if(/forget everything|clear memory/.test(low)){ clearMemory(); return "Memory cleared on this device."; }
+    // Notes & tasks
+    m = t.match(/add (?:a )?(?:note|task)[:\s]+(.+)/i); if(m){ RubyMemory.data.notes.push(m[1]); RubyMemory.save(); return `Added to your notes: “${m[1]}”. You now have ${RubyMemory.data.notes.length} note(s).`; }
+    if(/show my (notes|tasks)|list my (notes|tasks)/.test(low)) return RubyMemory.data.notes.length ? "Your notes:\n"+RubyMemory.data.notes.map((n,i)=>`${i+1}. ${n}`).join("\n") : "You have no notes yet. Say: add note: buy milk";
+    // Date / time
+    if(/\b(time|date|day is it|today)\b/.test(low) && /(what|tell|current)/.test(low)) { const d=new Date(); return `It's ${d.toLocaleString()} on this device.`; }
+    // Code runner
+    m = t.match(/run (?:this )?(?:javascript|js|code)[:\s]+([\s\S]+)/i); if(m){ try{ const logs=[]; const fn=new Function("console", m[1]); fn({log:(...a)=>logs.push(a.join(" "))}); return "Ran it. Output:\n"+(logs.join("\n")||"(no output — add console.log(...))"); }catch(e){ return "That code hit an error: "+e.message; } }
+
+    // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
+    if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
+      const lastF = RubyFiles.last();
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.6)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const z = RubyFiles.create("ruby-project.zip","",files);
+      return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
+    }
+    // Explicit file intent: turn this / make a <type> file
+    const fileTypes={html:"html",xml:"xml",json:"json",python:"py","py":"py",javascript:"js","js":"js",css:"css",csv:"csv",markdown:"md","text":"txt","txt":"txt",svg:"svg"};
+    let ftMatch = low.match(/(?:make|create|turn (?:this|it) into|download)(?: me| this into| it into)? an? ([a-z]+) file/) || low.match(/([a-z]+) file/);
+    if(ftMatch && fileTypes[ftMatch[1]] && /(make|create|turn|file|download)/.test(low)){
+      const ext=fileTypes[ftMatch[1]];
+      const lastF = RubyFiles.last();
+      let content, name="ruby-file."+ext;
+      if(/turn (this|it) into/.test(low) && lastF && lastF.type!=="zip"){ content=lastF.content; name=lastF.name.replace(/\.[^.]+$/,"")+"."+ext; if(ext==="xml" && lastF.type==="html") content='<?xml version="1.0" encoding="UTF-8"?>\n'+content; }
+      else if(ext==="xml") content='<?xml version="1.0" encoding="UTF-8"?>\n<ruby>\n  <name>Ruby AI</name>\n  <message>Made by Ruby</message>\n</ruby>';
+      else if(ext==="json") content=JSON.stringify({name:"Ruby AI",madeBy:"Ruby Architecture",ok:true},null,2);
+      else if(ext==="csv") content="name,score\nRuby,100\nWyatt,99";
+      else if(ext==="html"||ext==="svg"){ const g=CodeGen.generate(t); content=g.code; name = CodeGen.topic(low)==="flappy" ? "flappy-ruby.html" : "ruby-page.html"; if(ext==="svg") { content='<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><polygon points="100,10 180,70 140,190 60,190 20,70" fill="#e0112b"/><text x="100" y="115" font-size="42" text-anchor="middle" fill="#fff">◆</text></svg>'; name="ruby-gem.svg"; } }
+      else if(ext==="py"){ content=CodeGen.generate(t.includes("python")?t:t+" python").code; name="ruby-code.py"; }
+      else if(ext==="js"){ content=CodeGen.generate(t).code; name="ruby-code.js"; }
+      else if(ext==="css") content="body { background:#160005; color:#ffeef1; font-family:Arial; }\nh1 { color:#ff2e4d; }";
+      else content="Made by Ruby AI\n"+t;
+      const f=RubyFiles.create(name, content);
+      return `Done — I made you a real ${ext.toUpperCase()} file: ${name} (see the file card below).\n\n• Click "Open & use it here" to ${ext==="html"?"open it right inside Ruby AI — click around, use it, then hit ✕ Close when you're done":"view it right here"}\n• Click Download to save the actual file\n• Want changes? Just tell me — like "make the background blue" — and if the preview is open you'll watch it change live.`;
+    }
+    // Live changes to the last file
+    const lastF2 = RubyFiles.last();
+    if(lastF2 && lastF2.type==="html" && /(make|change|set) /.test(low) && /(background|bigger|smaller|text|title|blue|red|green|black|white|purple|orange|pink|yellow)/.test(low)){
+      let c = lastF2.content; const colour=(low.match(/(blue|red|green|black|white|purple|orange|pink|yellow)/)||[])[1];
+      if(colour && /background/.test(low)) c = c.replace(/background:[^;}"']+/, "background:"+colour) .includes("background:"+colour) ? c.replace(/background:[^;}"']+/, "background:"+colour) : c.replace("</head>","<style>body{background:"+colour+" !important}</style></head>");
+      else if(colour) c = c.replace("</head>","<style>body{color:"+colour+"} h1{color:"+colour+"}</style></head>");
+      if(/bigger text/.test(low)) c = c.replace("</head>","<style>body{font-size:22px}</style></head>");
+      if(/smaller text/.test(low)) c = c.replace("</head>","<style>body{font-size:13px}</style></head>");
+      const tm = t.match(/title (?:to|say) (.+)/i); if(tm) c = c.replace(/<title>.*?<\/title>/, "<title>"+tm[1]+"</title>").replace(/<h1>.*?<\/h1>/, "<h1>"+tm[1]+"</h1>");
+      lastF2.content=c; lastF2.updated=Date.now(); refreshPreviewIfOpen(lastF2);
+      return `Changed it ◆ I updated ${lastF2.name} for you.\n\nIf the preview is open, you're already watching the new version — it updated live. If not, tap "Open & use it here" on its file card, and Download will save the new version.`;
+    }
+    // Coding tasks
+    if(/(write|make|create|code|build).*(code|python|javascript|html|program|app|website|game|calculator|todo)/.test(low) || /^code /.test(low)){
+      const g = CodeGen.generate(t); const fname = g.lang==="html" ? (CodeGen.topic(low)==="flappy"?"flappy-ruby.html":"ruby-page.html") : g.lang==="python" ? "ruby-code.py" : "ruby-code.js"; RubyFiles.create(fname, g.code); return `Here's working ${g.lang} code for that — and I also made it into a real file for you (see the file card below: open it here, or download it):\n\n\`\`\`${g.lang}\n${g.code}\n\`\`\`\n\nWant me to change it, explain any line, or make a different version?`;
+    }
+    // Math (full RubyMath engine — runs before Knowledge so "what is 5 times 6" is maths, not a knowledge question)
+    const mathResult = RubyMath.trySolve(t); if(mathResult) return mathResult;
+    // Knowledge explanations
+    for(const k in Knowledge){ if(new RegExp("\\b"+k+"\\b").test(low)) return Knowledge[k]; }
+    if(/explain|what is|what are|how does|how do/.test(low)){
+      const topic = low.replace(/.*(explain|what is|what are|how does|how do)\s+/,"").replace(/\?$/,"").trim();
+      return `Here's the honest local answer: I don't have “${topic}” in my built-in knowledge yet — I run 100% on-device with no outside AI, so I only know what's built in or taught by you.\n\nYou can teach me right now by saying:\nteach: ${topic} is <your explanation>\n\nThen I'll remember it and answer with it next time. That's how the Ruby Architecture grows — openly, on your device.`;
+    }
+    // Writing
+    if(/short story|write a story/.test(low)){ const hero = (low.match(/about (?:a |an )?(.+)/)||[])[1]||"a ruby dragon"; return `◆ Ruby's story ◆\n\nOnce, in a cave that glowed red at sunset, there lived ${hero}. Everyone said its heart was a ruby — not because it was hard, but because it shone brightest when it helped someone else. One stormy night it lit the whole valley with that glow, guiding every lost traveller home. And from then on, whenever the sky turned ruby-red, people smiled and said: “It's still watching over us.”\n\nWant a longer version, a different ending, or a story about something else?`; }
+    if(/plan|7 days|schedule/.test(low) && /learn|study|coding|code/.test(low)) return "Here's a 7-day coding plan:\nDay 1 — Variables & print\nDay 2 — If/else decisions\nDay 3 — Loops\nDay 4 — Functions\nDay 5 — Lists & objects\nDay 6 — Build a mini project (calculator)\nDay 7 — Fix bugs, polish, show someone\n\n30–45 minutes a day beats one long session. Want me to turn any day into a lesson?";
+    if(/essay|paragraph/.test(low)) return "Here's a draft you can edit:\n\nTechnology is most powerful when it belongs to everyone. When tools are open, a student with one device can learn, build, and share ideas with the whole world. Ruby AI was created in that spirit: simple, open, and running entirely on the user's own device, so curiosity never has to wait for permission.\n\nWant it longer, shorter, or about a different topic? Tell me the topic.";
+    if(/joke/.test(low)) return ["Why did the ruby go to school? To become a little brighter! ◆","Why do programmers love rubies? Because every bug they fix makes the gem shine more.","What did the calculator say to the student? You can count on me." ][Math.floor(Math.random()*3)];
+    if(/^(hi|hey|hello|yo)\b/.test(low)) return `Hello${RubyMemory.data.name?", "+cap(RubyMemory.data.name):""}! I'm Ruby ◆ — your local AI. I can write code, do maths, explain things, write stories, make plans, and remember what you teach me. Try the chips on the side, or just ask.`;
+    if(/help|what can you do/.test(low)) return "I can do all of this — locally, no internet AI needed:\n• 💬 Chat & answer built-in knowledge questions\n• 💻 Write code — Python, JavaScript, HTML (calculators, todos, games, timers, websites…)\n• ▶️ Run JavaScript — say: run code: console.log(2+2)\n• 🧮 Maths — say: calculate 144 * 12\n• 🧠 Remember — say: remember that my dog is called Max\n• 📚 Learn from you — say: teach: Paris is the capital of France\n• 📝 Notes — say: add note: call Oakley\n• ✍️ Stories, essays & plans\n• 🕐 Date & time, jokes, and more\n\nAnd anyone can extend me — that's the Ruby Architecture (see ARCHITECTURE.md).";
+    if(/who are you|your name/.test(low)) return "I'm Ruby ◆ — a pure, local AI assistant built on the Ruby Architecture. I don't call Claude, ChatGPT, Gemini or any outside AI. Everything I do happens in this file, on your device.";
+    if(/thank/.test(low)) return "Any time ◆ That's what I'm here for.";
+    if(/bye/.test(low)) return "See you soon ◆ I'll remember what we talked about on this device.";
+    // Fallback with context
+    const words = tokenize(low).filter(w=>w.length>3);
+    return `I heard you — and here's my best local take: I don't have a built-in answer for that exact thing yet, and I won't pretend an outside AI answered it, because Ruby runs purely on your device.\n\nWhat I CAN do right now with “${t.slice(0,80)}”:\n• Rephrase it as a code task (“write code to…”)\n• Ask me to explain a built-in topic (loops, functions, Python, HTML…)\n• Teach me the answer: teach: <topic> is <answer> — then I'll know it forever on this device\n\nThat honesty is part of the design: Ruby never makes up a fake “top-tier” answer.`;
+  }
+};
+
+/* ===== v1.2: Chats, Settings, Account, Sync, Memory menu, Trash delete ===== */
+const RubyChats = {
+  key:"ruby_ai_chats_v1", data:{chats:[], activeId:null},
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r); }catch(e){} if(!this.data.chats.length) this.create("New chat"); if(!this.active()) this.data.activeId=this.data.chats[0].id; },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  create(title){ const c={id:"c"+Date.now()+"_"+Math.floor(Math.random()*9999), title:title||"New chat", created:Date.now(), messages:[]}; this.data.chats.unshift(c); this.data.activeId=c.id; this.save(); return c; },
+  active(){ return this.data.chats.find(c=>c.id===this.data.activeId) || null; },
+  addMessage(who,text){ const c=this.active(); if(!c) return; c.messages.push({who,text,at:Date.now()}); if(c.title==="New chat" && who==="user") c.title=text.slice(0,42); this.save(); },
+  deleteMany(ids){ const before=this.data.chats.length; this.data.chats=this.data.chats.filter(c=>!ids.includes(c.id)); if(!this.data.chats.length) this.create("New chat"); if(!this.active()) this.data.activeId=this.data.chats[0].id; this.save(); return before-this.data.chats.length; },
+  exportData(){ return {exportedAt:new Date().toISOString(), chats:this.data.chats, memory:RubyMemory.data}; }
+};
+const RubySettings = {
+  key:"ruby_ai_settings_v1",
+  data:{memory:true, fileCards:true, livePreview:true, enterSend:true, animations:true},
+  labels:{memory:"🧠 Long-term memory (Ruby remembers you)", fileCards:"📁 File cards & downloads", livePreview:"▶ Live HTML preview", enterSend:"⏎ Enter key sends message", animations:"✨ Animations"},
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=Object.assign(this.data, JSON.parse(r)); }catch(e){} },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} }
+};
+RubySettings.load();
+const RubyAccount = {
+  key:"ruby_ai_account_v1", data:null,
+  load(){ try{ const r=localStorage.getItem(this.key); if(r) this.data=JSON.parse(r); }catch(e){} },
+  save(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  async hash(text){ try{ const buf=await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ruby◆"+text)); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join(""); }catch(e){ let x=0; for(const ch of text) x=(x*31+ch.charCodeAt(0))>>>0; return "h"+x; } },
+  async create(user, pass){ this.data={user, passHash:await this.hash(pass), created:Date.now(), synced:false}; this.save(); return this.data; },
+  async check(user, pass){ if(!this.data) return false; return this.data.user===user && this.data.passHash===await this.hash(pass); }
+};
+RubyAccount.load();
+let deleteMode=false, pendingDelete=[];
+function openModal(id){ const m=document.getElementById(id); if(m) m.classList.add("open"); if(id==="memoryModal") updateMemModals(); if(id==="settingsModal"){ renderToggles(); renderAccount(); } }
+function closeModal(id){ const m=document.getElementById(id); if(m) m.classList.remove("open"); }
+function updateMemModals(){ const s=`Chats: <b>${RubyChats.data.chats.length}</b> • Messages: <b>${RubyChats.data.chats.reduce((a,c)=>a+c.messages.length,0)}</b><br>Facts: <b>${Object.keys(RubyMemory.data.facts).length}</b> • Taught: <b>${Object.keys(RubyMemory.data.taught).length}</b> • Notes: <b>${RubyMemory.data.notes.length}</b>`; const a=document.getElementById("memStats2"); if(a) a.innerHTML=s; }
+function renderChatList(){
+  const list=document.getElementById("chatList"); if(!list) return; list.innerHTML="";
+  for(const c of RubyChats.data.chats){ const d=document.createElement("div"); d.className="chatitem"+(c.id===RubyChats.data.activeId?" active":"");
+    if(deleteMode){ const box=document.createElement("input"); box.type="checkbox"; box.className="delBox"; box.dataset.id=c.id; d.appendChild(box); }
+    const s=document.createElement("span"); s.textContent="💬 "+c.title; s.title=c.title; d.appendChild(s);
+    const n=document.createElement("span"); n.className="small"; n.style.flex="none"; n.textContent=c.messages.length; d.appendChild(n);
+    d.onclick=(e)=>{ if(deleteMode) return; switchChat(c.id); };
+    list.appendChild(d); }
+  const dt=document.getElementById("delTools"); if(dt) dt.style.display=deleteMode?"flex":"none";
+  const tb=document.getElementById("trashBtn"); if(tb) tb.textContent=deleteMode?"🗑 Pick chats…":"🗑 Trash";
+}
+function switchChat(id){ RubyChats.data.activeId=id; RubyChats.save(); renderChatList(); renderActiveChat(); if(window.innerWidth<800) toggleSide&&document.getElementById("side").classList.remove("open"); }
+function renderActiveChat(){ const box=document.getElementById("chat"); if(!box) return; box.innerHTML=""; const c=RubyChats.active(); if(!c) return; for(const m of c.messages){ const d=document.createElement("div"); d.className="msg "+m.who; d.textContent=m.text; box.appendChild(d); } box.scrollTop=box.scrollHeight; }
+function newChat(){ RubyChats.create("New chat"); renderChatList(); renderActiveChat(); const box=document.getElementById("chat"); }
+function toggleDeleteMode(){ deleteMode=!deleteMode; renderChatList(); }
+function selectedChatIds(){ return [...document.querySelectorAll(".delBox")].filter(b=>b.checked).map(b=>b.dataset.id); }
+function selectAllChats(on){ document.querySelectorAll(".delBox").forEach(b=>b.checked=on); }
+function askDeleteSelected(){ const ids=selectedChatIds(); if(!ids.length){ alert("Tick at least one chat first — or tick Select all."); return; } pendingDelete=ids; document.getElementById("confirmText").textContent=`Are you sure you want to delete ${ids.length===1?"this chat":("these "+ids.length+" chats")}?`; openModal("confirmModal"); }
+function confirmDelete(){ RubyChats.deleteMany(pendingDelete); pendingDelete=[]; deleteMode=false; const sa=document.getElementById("selectAllBox"); if(sa) sa.checked=false; closeModal("confirmModal"); renderChatList(); renderActiveChat(); }
+function exportChatMemory(){ const blob=new Blob([JSON.stringify(RubyChats.exportData(),null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ruby-ai-chat-memory.json"; a.click(); }
+function renderToggles(){ const t=document.getElementById("toggles"); if(!t) return; t.innerHTML=""; for(const k in RubySettings.labels){ const row=document.createElement("div"); row.className="switchrow"; const l=document.createElement("span"); l.textContent=RubySettings.labels[k]; const box=document.createElement("input"); box.type="checkbox"; box.checked=!!RubySettings.data[k]; box.onchange=()=>{ RubySettings.data[k]=box.checked; RubySettings.save(); if(k==="memory"&&!box.checked) alert("Memory is off — Ruby will chat but won't save new memories on this device."); }; row.appendChild(l); row.appendChild(box); t.appendChild(row); } }
+function renderAccount(){ const a=document.getElementById("accountArea"); if(!a) return;
+  if(RubyAccount.data){ a.innerHTML=""; const p=document.createElement("p"); p.className="small"; p.textContent="Signed in on this device as: "+RubyAccount.data.user+(RubyAccount.data.synced?" • Sync: ON ◆":" • Sync: not synced yet"); a.appendChild(p); const b=document.createElement("button"); b.className="ghost"; b.textContent="Sign out"; b.onclick=()=>{ RubyAccount.data=null; RubyAccount.save(); renderAccount(); }; a.appendChild(b); }
+  else { a.innerHTML='<input type="text" id="accUser" placeholder="Choose a username or email"><input type="password" id="accPass" placeholder="Choose a password"><button style="width:100%" onclick="createAccount()">Create account</button><p class="small">Your account is created on this device — the password is stored only as a scrambled hash, never as plain text, and never sent anywhere.</p>'; }
+}
+async function createAccount(){ const u=document.getElementById("accUser").value.trim(), pw=document.getElementById("accPass").value; if(!u||pw.length<4){ alert("Pick a username and a password of at least 4 characters."); return; } await RubyAccount.create(u,pw); renderAccount(); alert("Account created ◆ Welcome, "+u); }
+async function doSync(){ const u=document.getElementById("syncUser").value.trim(), pw=document.getElementById("syncPass").value; const st=document.getElementById("syncStatus"); if(!u||!pw){ st.textContent="Please enter your account info and your password first."; return; } if(!RubyAccount.data){ st.textContent="No account on this device yet — create one above first, then sync."; return; } const ok=await RubyAccount.check(u,pw); if(!ok){ st.textContent="That account info / password doesn't match this device's Ruby account. Try again."; return; } RubyAccount.data.synced=true; RubyAccount.data.lastSync=Date.now(); RubyAccount.save(); renderAccount(); st.textContent="Synced ◆ This device is linked to Ruby AI Desktop as "+u+" ("+new Date().toLocaleTimeString()+"). Note: Ruby has no cloud server yet, so sync links the account on this device — your chats and memory stay stored here, ready for desktop sync when the Ruby server launches."; }
+
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function showMemoryText(){ const d=RubyMemory.data; let s="Here's what I remember on this device:\n"; s+= d.name?`• Your name: ${cap(d.name)}\n`:""; for(const k in d.facts) s+=`• ${k}: ${d.facts[k]}\n`; for(const k in d.taught) s+=`• (taught) ${k}: ${d.taught[k]}\n`; s+=`• Notes: ${d.notes.length} • Conversation turns: ${d.turns}`; if(!d.name && !Object.keys(d.facts).length && !Object.keys(d.taught).length) s+="\n(Nothing personal yet — teach me something!)"; return s; }
+function updateStats(){ const el=document.getElementById("memStats"); if(el) el.innerHTML=`Turns: <b>${RubyMemory.data.turns}</b><br>Facts: <b>${Object.keys(RubyMemory.data.facts).length}</b> • Taught: <b>${Object.keys(RubyMemory.data.taught).length}</b><br>Notes: <b>${RubyMemory.data.notes.length}</b><br>Memory saved on device: <b>${(RubyMemory.bytes()/1024).toFixed(2)} KB</b>`; }
+function addMsg(text,who){ const c=document.getElementById("chat"); const d=document.createElement("div"); d.className="msg "+who; d.textContent=text; c.appendChild(d); c.scrollTop=c.scrollHeight; if(!window._renderingChat){ RubyChats.addMessage(who==="user"?"user":"ruby", text); renderChatList(); } }
+function send(){ const i=document.getElementById("inp"); const v=i.value.trim(); if(!v)return; i.value=""; addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
+function ask(v){ addMsg(v,"user"); const before=RubyFiles.lastId; setTimeout(()=>{ addMsg(RubyBrain.reply(v),"ruby"); maybeRenderLastFile(before); },120); }
+function toggleSide(){ document.getElementById("side").classList.toggle("open"); }
+function clearMemory(){ localStorage.removeItem(RubyMemory.key); RubyMemory.data={facts:{},taught:{},notes:[],tasks:[],history:[],name:"",turns:0,created:Date.now()}; RubyMemory.save(); updateStats(); }
+function showMemory(){ addMsg(showMemoryText(),"ruby"); }
+function exportMemory(){ const blob=new Blob([JSON.stringify(RubyMemory.data,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ruby-ai-memory.json"; a.click(); }
+updateStats();
+RubyChats.load();
+if(RubyChats.active() && RubyChats.active().messages.length){ window._renderingChat=true; renderActiveChat(); window._renderingChat=false; renderChatList(); }
+else { renderChatList(); addMsg("Hello, I'm Ruby ◆ — now with real files: ask me to make something and you'll get a file card to open it right here or download it.\n\n — your pure local AI assistant.\n\nNo API keys. No Claude, ChatGPT or Gemini hiding inside. No internet AI calls. Everything I do runs in this one file, on your phone or laptop.\n\nAsk me to write code, do maths, explain something, write a story — or teach me something new and I'll remember it.","ruby"); }
+</script></body></html>
