@@ -1620,6 +1620,7 @@ const RUBY_SORRY = "I'm sorry, I can't help you with that right now — please t
       return `Got it — I'll remember that your ${thing} is ${val}. 💎`;
     }
     // recall: "what is my favourite colour", "what did I tell you about my dog", "do you remember my X"
+    if (/^what(?:'s| is) my name\??$/.test(low)) return null; // the brain owns name memory
     m = low.match(/what(?:'s| is) my ([a-z ]{1,30}?)\??$/) || low.match(/what did i (?:tell|teach) you about (?:my )?([a-z ]{1,30}?)\??$/) || low.match(/do you remember my ([a-z ]{1,30}?)\??/);
     if (m){
       const thing = m[1].trim();
