@@ -1,4 +1,4 @@
-// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.2.html
+// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.3.html
 
 "use strict";
 /* ============================================================
@@ -1588,6 +1588,30 @@ const RUBY_SORRY = "I'm sorry, I can't help you with that right now — please t
     if (/\bi'?m doing (bad|badly|terrible|awful|not good|not well)\b/.test(L) || /\bi'?m not (good|great|okay|alright|fine|well)\b/.test(L)) return `I'm sorry${nm()} 💛 Want to talk about what's wrong, or would a distraction help?`;
     if (/\bit'?s been a (good|great|lovely|nice) day\b/.test(L)) return `Really glad${nm()}! 🎉 Those are the days worth remembering.`;
     if (/\bit'?s been a (bad|long|rough|hard|terrible) day\b/.test(L)) return `I'm sorry${nm()} 💛 Long days are draining. You're through it now, though.`;
+    return prevThink(t, low, plan);
+  };
+})();
+
+
+
+
+/* ===== v1.14.3: short answers — when Ruby asks "how's yours?" and you say
+   "it's good", that IS the conversation. Bare state answers get real replies. ===== */
+(function(){
+  const prevThink = RubyBrain.think.bind(RubyBrain);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  function nm(){ try{ return RubyMemory.data.name ? " "+RubyMemory.data.name : ""; }catch(e){ return ""; } }
+  RubyBrain.think = function(t, low, plan){
+    const L = String(low||"").trim().replace(/[!.,]+$/,"");
+    const GOOD = /^(yeah |yea |yes |yep )?(it'?s|that'?s|it was|that was|i'?m|im|doing|feeling|all|everything'?s|everything is)? ?(really |so |very |pretty |kinda |quite )?(good|great|fine|okay|ok|alright|amazing|awesome|fantastic|nice|lovely|brilliant|perfect|wonderful|not bad|not too bad|good thanks|good thank you)$/;
+    const BAD = /^(yeah |yea |yes |yep )?(it'?s|that'?s|it was|that was|i'?m|im|doing|feeling|all)? ?(really |so |very |pretty |kinda |quite )?(bad|terrible|awful|horrible|rough|meh|so-so|soso|eh|not good|not great|not okay|not alright|could be better)$/;
+    if (GOOD.test(L)) return pick([
+      `Glad to hear it${nm()}! 🎉 What's been the best part of your day so far?`,
+      `Good stuff${nm()}! ◆ Love a day that's treating you well.`,
+      `Really glad${nm()}! ✨ Here's hoping it stays that way.`]);
+    if (BAD.test(L)) return pick([
+      `I'm sorry${nm()} 💛 Want to talk about what's making it rough, or would a distraction help — joke, music, a game?`,
+      `That's tough${nm()} 💛 I'm here either way — vent, or let me cheer you up.`]);
     return prevThink(t, low, plan);
   };
 })();
