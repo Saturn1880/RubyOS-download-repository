@@ -38,7 +38,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
 </style></head><body>
-<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.12 Media Studio</div></div>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.13 Brain Boost</div></div>
 <div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
 <div class="layout"><aside id="side">
 <h3>💬 Chats</h3>
@@ -556,7 +556,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.12)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.13)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -1210,6 +1210,334 @@ const RubySchool = {
     return base;
   };
 
+})();
+
+</script>
+<script>
+/* ===== Ruby v1.13 "Brain Boost" — still 100% local. Free stays light; Pro / Professional / Coding get:
+   • Math 3: scientific functions, equations (linear/quadratic/cubic+), 2-var systems, derivatives, integrals,
+     statistics, primes, gcd/lcm, bases, percent, geometry — with steps and a cross-check on top tiers
+   • Code 3: 12 verified algorithms (JS + Python), code reviewer/linter, language starters
+   • Knowledge 3: 35 extra topics with fuzzy matching and honest limits */
+(function(){
+'use strict';
+const cur=()=>RubyModels.current, paid=()=>cur()!=='free', deep=()=>cur()==='professional'||cur()==='coding';
+const fmt=v=>{if(typeof v==='bigint')return v.toString();if(!isFinite(v))return String(v);if(Number.isInteger(v)&&Math.abs(v)<1e15)return String(v);return String(+v.toPrecision(12));};
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a;};
+const ncr=(n,k)=>{if(k<0||k>n)return 0;k=Math.min(k,n-k);let r=1;for(let i=1;i<=k;i++){r=r*(n-k+i)/i;}return Math.round(r);};
+const npr=(n,k)=>{let r=1;for(let i=0;i<k;i++){r*=n-i;}return r;};
+const FN={sin:Math.sin,cos:Math.cos,tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan,sinh:Math.sinh,cosh:Math.cosh,tanh:Math.tanh,sqrt:Math.sqrt,cbrt:Math.cbrt,ln:Math.log,log:Math.log10,log10:Math.log10,log2:Math.log2,exp:Math.exp,abs:Math.abs,floor:Math.floor,ceil:Math.ceil,round:Math.round,fact:n=>{if(n<0||n%1)return NaN;let r=1;for(let i=2;i<=n;i++){r*=i;}return r;}};
+const FN2={root:(n,x)=>Math.pow(x,1/n),gcd,lcm:(a,b)=>a/gcd(a,b)*b,ncr,npr,mod:(a,b)=>((a%b)+b)%b,pow:Math.pow,max:Math.max,min:Math.min,atan2:Math.atan2};
+const NAMES=new Set([...Object.keys(FN),...Object.keys(FN2),'pi','e']);
+
+/* ---------- expression compiler (real precedence, implicit multiply, functions, variables) ---------- */
+function compile(src){
+  src=src.replace(/\*\*/g,'^').replace(/×/g,'*').replace(/÷/g,'/').replace(/[−–]/g,'-').replace(/π/g,'pi').replace(/√\s*(\d+(?:\.\d+)?|\([^)]*\))/g,'sqrt($1)');
+  const t=[],re=/\s*(?:(\d+\.?\d*|\.\d+)|([a-z]+)|(.))/gy;let m;
+  while(re.lastIndex<src.length&&(m=re.exec(src))){
+    if(m[1]){t.push({n:+m[1]});}
+    else if(m[2]){if(NAMES.has(m[2])){t.push({id:m[2]});}else{for(const ch of m[2]){t.push({id:ch});}}}
+    else if(m[3]&&m[3].trim()){t.push({op:m[3]});}
+  }
+  const vars=new Set();let p=0;const pk=()=>t[p],nx=()=>t[p++];
+  const E=()=>{let l=T();while(pk()&&(pk().op==='+'||pk().op==='-')){const o=nx().op,r=T(),a=l;l=o==='+'?v=>a(v)+r(v):v=>a(v)-r(v);}return l;};
+  const T=()=>{let l=U();for(;;){const k=pk();if(!k)break;let o;if(k.op==='*'||k.op==='/'){o=nx().op;}else if(k.n!==undefined||k.id||k.op==='('){o='*';}else break;const r=U(),a=l;l=o==='/'?v=>a(v)/r(v):v=>a(v)*r(v);}return l;};
+  const U=()=>{if(pk()&&pk().op==='-'){nx();const a=U();return v=>-a(v);}if(pk()&&pk().op==='+'){nx();return U();}return P();};
+  const P=()=>{let b=A();while(pk()&&(pk().op==='!'||pk().op==='%')){const o=nx().op,a=b;b=o==='!'?v=>FN.fact(a(v)):v=>a(v)/100;}
+    if(pk()&&pk().op==='^'){nx();const e=U(),a=b;return v=>Math.pow(a(v),e(v));}return b;};
+  const A=()=>{const k=nx();if(!k)throw new Error('end');
+    if(k.n!==undefined)return()=>k.n;
+    if(k.op==='('){const e=E();if(!pk()||nx().op!==')')throw new Error('paren');return e;}
+    if(k.id){
+      if(k.id==='pi')return()=>Math.PI; if(k.id==='e')return()=>Math.E;
+      const f=FN[k.id]||FN2[k.id];
+      if(f){ if(pk()&&pk().op==='('){nx();const args=[E()];while(pk()&&pk().op===','){nx();args.push(E());}if(!pk()||nx().op!==')')throw new Error('paren');return v=>f(...args.map(a=>a(v)));}
+             const a=U();return v=>f(a(v)); }
+      vars.add(k.id);return v=>{if(!(k.id in v))throw new Error('var');return v[k.id];};
+    }
+    throw new Error('tok');};
+  const f=E();if(p<t.length)throw new Error('left');
+  return {f,vars:[...vars]};
+}
+function solveLin(A,b){const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let pv=c;for(let r=c+1;r<n;r++){if(Math.abs(M[r][c])>Math.abs(M[pv][c]))pv=r;}
+    if(Math.abs(M[pv][c])<1e-12)return null;[M[c],M[pv]]=[M[pv],M[c]];
+    for(let r=0;r<n;r++){if(r!==c){const f=M[r][c]/M[c][c];for(let k=c;k<=n;k++){M[r][k]-=f*M[c][k];}}}}
+  return M.map((r,i)=>r[n]/r[i]);}
+function polyFit(f){const pts=[0,1,-1,2,-2,3,-3,4,-4];
+  for(let d=0;d<=5;d++){const xs=pts.slice(0,d+1),ys=xs.map(x=>f({x}));if(ys.some(y=>!isFinite(y)))return null;
+    const c=solveLin(xs.map(x=>Array.from({length:d+1},(_,j)=>x**j)),ys);if(!c)continue;
+    const ok=[0.5,-1.5,2.5,5].every(x=>{let v=0;c.forEach((a,j)=>{v+=a*x**j;});return Math.abs(v-f({x}))<1e-7*(1+Math.abs(v));});
+    if(ok)return c.map(a=>Math.abs(a-Math.round(a))<1e-9?Math.round(a):+a.toPrecision(12));}
+  return null;}
+const sup=n=>n===1?'':'^'+n;
+function polyStr(c){let s='';for(let j=c.length-1;j>=0;j--){const a=c[j];if(!a)continue;const ab=Math.abs(a),co=(ab===1&&j>0)?'':fmt(ab);s+=(s?(a<0?' − ':' + '):(a<0?'−':''))+co+(j>0?'x'+sup(j):'');}return s||'0';}
+const degOf=c=>{let d=c.length-1;while(d>0&&!c[d])d--;return d;};
+
+/* ---------- topic solvers ---------- */
+function solveEq(s){
+  const parts=s.split('=');if(parts.length!==2)return null;
+  const L=compile(parts[0]),R=compile(parts[1]),vs=[...new Set([...L.vars,...R.vars])];if(vs.length!==1)return null;
+  const v=vs[0],f=o=>L.f({[v]:o.x})-R.f({[v]:o.x}),c=polyFit(f);if(!c)return null;
+  const d=degOf(c);let out=`Solving ${s.trim()}\n`,roots=[];
+  if(d===0){return out+(Math.abs(c[0])<1e-9?'Both sides are always equal — every value works (an identity).':'The sides can never be equal — no solution.');}
+  out+=`Step 1 — move everything to one side: ${polyStr(c.slice(0,d+1)).replace(/x/g,v)} = 0\n`;
+  if(d===1){roots=[-c[0]/c[1]];out+=`Step 2 — isolate ${v}: ${v} = ${fmt(-c[0])} ÷ ${fmt(c[1])}\n`;}
+  else if(d===2){const [C,B,Aa]=c,D=B*B-4*Aa*C;out+=`Step 2 — quadratic formula, a=${fmt(Aa)}, b=${fmt(B)}, c=${fmt(C)}: discriminant b²−4ac = ${fmt(D)}\n`;
+    if(D>=0){roots=[(-B+Math.sqrt(D))/(2*Aa),(-B-Math.sqrt(D))/(2*Aa)];}
+    else{return out+`Discriminant is negative, so there are no real roots. Complex roots: ${v} = ${fmt(-B/(2*Aa))} ± ${fmt(Math.sqrt(-D)/(2*Aa))}i`;}}
+  else{out+=`Step 2 — degree ${d}: scanning for real roots numerically\n`;const g=x=>{let r=0;for(let j=d;j>=0;j--){r=r*x+c[j];}return r;};
+    let px=-200,pv=g(px);for(let x=-199.99;x<=200;x+=0.01){const y=g(x);if(y===0||pv*y<0){let lo=px,hi=x;for(let i=0;i<70;i++){const mid=(lo+hi)/2;if(g(lo)*g(mid)<=0)hi=mid;else lo=mid;}roots.push((lo+hi)/2);}px=x;pv=y;}
+    roots=roots.filter((r,i)=>roots.findIndex(q=>Math.abs(q-r)<1e-4)===i);if(!roots.length)return out+'No real roots found between −200 and 200.';}
+  roots=roots.map(r=>+r.toPrecision(10));const uniq=[...new Set(roots)];
+  out+=uniq.map(r=>`${v} = ${fmt(r)}`).join('   or   ');
+  if(deep()){const chk=uniq.every(r=>Math.abs(f({x:r}))<1e-6*(1+Math.abs(r)**d));out+=`\nCheck — plugging back in: ${chk?'✔ both sides match':'⚠ small rounding difference'}`;}
+  return out;}
+function solveSys(eqs){
+  const cs=eqs.map(e=>{const p=e.split('=');if(p.length!==2)throw new Error('eq');const L=compile(p[0]),R=compile(p[1]);return(x,y)=>L.f({x,y})-R.f({x,y});});
+  const co=cs.map(f=>{const f0=f(0,0),a=f(1,0)-f0,b=f(0,1)-f0;return[a,b,-f0,f(1,1)-f0-a-b];});
+  if(co.some(r=>Math.abs(r[3])>1e-9))return null;
+  const [a1,b1,c1]=co[0],[a2,b2,c2]=co[1],D=a1*b2-a2*b1;
+  if(Math.abs(D)<1e-12)return 'These two equations are parallel (no solution) or identical (endless solutions).';
+  const x=(c1*b2-c2*b1)/D,y=(a1*c2-a2*c1)/D;
+  let o=`System: ${eqs[0].trim()}  and  ${eqs[1].trim()}\nWritten as ${(fmt(a1)+'x + '+fmt(b1)+'y = '+fmt(c1)).replace('+ -','− ')} and ${(fmt(a2)+'x + '+fmt(b2)+'y = '+fmt(c2)).replace('+ -','− ')}\nDeterminant D = ${fmt(D)} (not zero, so one answer)\nx = ${fmt(x)},  y = ${fmt(y)}`;
+  if(deep())o+=`\nCheck: equation 1 → ${fmt(a1*x+b1*y)} ✔,  equation 2 → ${fmt(a2*x+b2*y)} ✔`;return o;}
+const KD=[[/^sin\(x\)$/,'cos(x)'],[/^cos\(x\)$/,'−sin(x)'],[/^tan\(x\)$/,'1/cos²(x)'],[/^(?:e\^x|exp\(x\))$/,'e^x'],[/^ln\(x\)$/,'1/x'],[/^sqrt\(x\)$/,'1/(2√x)'],[/^1\/x$/,'−1/x²']];
+function calculus(low){let m;
+  if(m=low.match(/(?:derivative|differentiate|d\/dx)\s*(?:of)?\s*(.+?)(?:\s+(?:with respect to x|wrt x))?(?:\s+at\s+x\s*=\s*(-?[\d.]+))?\??$/)){
+    const e=m[1].replace(/^\(|\)$/g,m=>m).trim(),at=m[2];const f=o=>compile(e).f({x:o.x});const c=polyFit(f);
+    if(c){const d=c.slice(1).map((a,j)=>a*(j+1));let o=`d/dx [ ${polyStr(c)} ]\nPower rule: d/dx of aˣⁿ = n·a·xⁿ⁻¹, term by term\n= ${polyStr(d.length?d:[0])}`;
+      if(at!==undefined){let v=0;d.forEach((a,j)=>{v+=a*(+at)**j;});o+=`\nAt x = ${at}: ${fmt(v)}`;}return o;}
+    const k=KD.find(([r])=>r.test(e.replace(/\s/g,'')));if(k)return `d/dx [ ${e} ] = ${k[1]}`;
+    if(at!==undefined){const x0=+at,h=1e-5,v=(f({x:x0+h})-f({x:x0-h}))/(2*h);return `d/dx [ ${e} ] at x = ${at} ≈ ${fmt(+v.toPrecision(8))} (numeric, central difference)`;}
+    return null;}
+  if(m=low.match(/(?:integral|integrate|antiderivative)\s*(?:of)?\s*(.+?)(?:\s+from\s+(-?[\d.]+)\s+to\s+(-?[\d.]+))?\??$/)){
+    const e=m[1].trim(),f=o=>compile(e).f({x:o.x});const c=polyFit(f);
+    const F=c?c.map((a,j)=>a/(j+1)):null;
+    if(m[2]!==undefined){const a=+m[2],b=+m[3];let val;
+      if(F){const ev=x=>{let v=0;F.forEach((q,j)=>{v+=q*x**(j+1);});return v;};val=ev(b)-ev(a);}
+      else{const n=2000,h=(b-a)/n;let s=f({x:a})+f({x:b});for(let i=1;i<n;i++){s+=f({x:a+i*h})*(i%2?4:2);}val=s*h/3;}
+      return `∫ from ${m[2]} to ${m[3]} of ${e} dx ${F?'=':'≈'} ${fmt(+val.toPrecision(10))}${F?'':' (Simpson numeric)'}`;}
+    if(F)return `∫ ${polyStr(c)} dx = ${polyStr([0,...F])} + C\nPower rule: ∫xⁿ dx = xⁿ⁺¹/(n+1)`;
+    const K={'sin(x)':'−cos(x) + C','cos(x)':'sin(x) + C','e^x':'e^x + C','1/x':'ln|x| + C'}[e.replace(/\s/g,'')];if(K)return `∫ ${e} dx = ${K}`;}
+  return null;}
+const nums=s=>(s.match(/-?\d+(?:\.\d+)?/g)||[]).map(Number);
+function stats(low){const m=low.match(/\b(mean|average|median|mode|range|variance|standard deviation|std dev|sum|total|minimum|maximum|stats)\b.*?(?:of|for)\s+((?:-?\d+(?:\.\d+)?[\s,]*(?:and\s+)?){2,})/);if(!m)return null;
+  const a=nums(m[2]);if(a.length<2)return null;const s=[...a].sort((x,y)=>x-y),n=a.length,sum=a.reduce((x,y)=>x+y,0),mean=sum/n;
+  const med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2,cnt={};a.forEach(v=>{cnt[v]=(cnt[v]||0)+1;});const mx=Math.max(...Object.values(cnt)),mode=Object.keys(cnt).filter(k=>cnt[k]===mx);
+  const ss=a.reduce((x,y)=>x+(y-mean)**2,0),vp=ss/n,vs=n>1?ss/(n-1):0;
+  const all={sum:`Sum = ${fmt(sum)}`,mean:`Mean = ${fmt(sum)} ÷ ${n} = ${fmt(mean)}`,median:`Median (middle of sorted ${s.join(', ')}) = ${fmt(med)}`,mode:mx===1?'Mode: no value repeats':`Mode = ${mode.join(', ')}`,range:`Range = ${fmt(s[n-1])} − ${fmt(s[0])} = ${fmt(s[n-1]-s[0])}`,variance:`Variance: population = ${fmt(vp)}, sample = ${fmt(vs)}`,sd:`Standard deviation: population = ${fmt(Math.sqrt(vp))}, sample = ${fmt(Math.sqrt(vs))}`};
+  const k=m[1];const key=/average|mean/.test(k)?'mean':/median/.test(k)?'median':/mode/.test(k)?'mode':/range/.test(k)?'range':/variance/.test(k)?'variance':/standard|std/.test(k)?'sd':/min/.test(k)?null:/max/.test(k)?null:'sum';
+  if(/min/.test(k))return `Minimum of ${a.join(', ')} = ${fmt(s[0])}`;if(/max/.test(k))return `Maximum of ${a.join(', ')} = ${fmt(s[n-1])}`;
+  return (k==='stats'||deep())?Object.values(all).join('\n'):all[key];}
+function numTheory(low){let m;
+  if(m=low.match(/\bis (\d+) (?:a )?prime/)){const n=+m[1];if(n<2)return `${n} is not prime (primes start at 2).`;for(let i=2;i*i<=n;i++){if(n%i===0)return `${n} is not prime — it divides evenly by ${i} (${n} = ${i} × ${n/i}).`;}return `${n} is prime — nothing from 2 up to √${n} ≈ ${Math.floor(Math.sqrt(n))} divides it.`;}
+  if(m=low.match(/prime factor(?:s|isation|ization)? of (\d+)/)){let n=+m[1];const o=n,f=[];for(let i=2;i*i<=n;i++){while(n%i===0){f.push(i);n/=i;}}if(n>1)f.push(n);return `${o} = ${f.join(' × ')}${f.length===1?' (it is prime)':''}`;}
+  if(m=low.match(/\b(gcd|hcf|greatest common (?:divisor|factor)|lcm|least common multiple)\b (?:of )?(\d+)(?:\s*,\s*|\s+and\s+)(\d+)/)){const a=+m[2],b=+m[3],g=gcd(a,b);return /gcd|hcf|greatest/.test(m[1])?`GCD of ${a} and ${b} = ${g}`:`LCM of ${a} and ${b} = ${a}×${b} ÷ GCD(${g}) = ${a/g*b}`;}
+  if(m=low.match(/fibonacci(?: number)?(?: number)? (\d+)|(\d+)(?:st|nd|rd|th) fibonacci/)){const n=+(m[1]||m[2]);if(n>2000)return null;let a=0n,b=1n;for(let i=0;i<n;i++){[a,b]=[b,a+b];}return `Fibonacci number #${n} (starting 0, 1, 1, 2, 3, 5…) = ${a}`;}
+  if(m=low.match(/(\d+) factorial|factorial of (\d+)/)){const n=+(m[1]||m[2]);if(n>1000)return null;let r=1n;for(let i=2n;i<=BigInt(n);i++){r*=i;}return `${n}! = ${r}`;}
+  if(m=low.match(/(\d+) choose (\d+)/)){const n=+m[1],k=+m[2];let r=1n;for(let i=1n;i<=BigInt(Math.min(k,n-k)>=0?Math.min(k,n-k):0);i++){r=r*(BigInt(n)-BigInt(Math.min(k,n-k))+i)/i;}return `C(${n},${k}) = ${r} ways to choose ${k} from ${n}`;}
+  if(m=low.match(/(?:convert )?(\d+) (?:in|to|into) (binary|hex(?:adecimal)?|octal)/)){const b=/bin/.test(m[2])?2:/oct/.test(m[2])?8:16;return `${m[1]} in ${m[2]} = ${(+m[1]).toString(b).toUpperCase()}`;}
+  if(m=low.match(/(?:binary|0b)\s*([01]+) (?:to|in) decimal/))return `Binary ${m[1]} = ${parseInt(m[1],2)} in decimal`;
+  if(m=low.match(/(?:hex(?:adecimal)?|0x)\s*([0-9a-f]+) (?:to|in) decimal/))return `Hex ${m[1].toUpperCase()} = ${parseInt(m[1],16)} in decimal`;
+  return null;}
+function percentGeo(low){let m;
+  if(m=low.match(/percent(?:age)? (?:change|increase|decrease) (?:from )?(-?[\d.]+) (?:to|->) (-?[\d.]+)/)){const a=+m[1],b=+m[2],p=(b-a)/Math.abs(a)*100;return `(${b} − ${a}) ÷ ${Math.abs(a)} × 100 = ${fmt(+p.toPrecision(10))}% ${p>=0?'increase':'decrease'}`;}
+  if(m=low.match(/what percent(?:age)? is ([\d.]+) of ([\d.]+)/))return `${m[1]} ÷ ${m[2]} × 100 = ${fmt(+(m[1]/m[2]*100).toPrecision(10))}%`;
+  if(m=low.match(/(increase|decrease) ([\d.]+) by ([\d.]+)\s*%/)){const a=+m[2],p=+m[3],r=m[1]==='increase'?a*(1+p/100):a*(1-p/100);return `${a} ${m[1]}d by ${p}% = ${fmt(+r.toPrecision(10))}`;}
+  if(m=low.match(/area of (?:a )?circle.*?([\d.]+)/)){const r=+m[1];return `Area = π r² = π × ${r}² ≈ ${fmt(+(Math.PI*r*r).toPrecision(10))}`;}
+  if(m=low.match(/circumference of (?:a )?circle.*?([\d.]+)/)){const r=+m[1];return `Circumference = 2πr = 2 × π × ${r} ≈ ${fmt(+(2*Math.PI*r).toPrecision(10))}`;}
+  if(m=low.match(/volume of (?:a )?sphere.*?([\d.]+)/)){const r=+m[1];return `Volume = 4/3 π r³ ≈ ${fmt(+(4/3*Math.PI*r**3).toPrecision(10))}`;}
+  if(m=low.match(/area of (?:a )?triangle.*?base ([\d.]+).*?height ([\d.]+)/))return `Area = ½ × base × height = ½ × ${m[1]} × ${m[2]} = ${fmt(m[1]*m[2]/2)}`;
+  if(m=low.match(/hypotenuse.*?([\d.]+) (?:and|,) ([\d.]+)/)){const a=+m[1],b=+m[2];return `Pythagoras: c = √(${a}² + ${b}²) = √${fmt(a*a+b*b)} ≈ ${fmt(+Math.hypot(a,b).toPrecision(10))}`;}
+  return null;}
+function clean(s){
+  s=s.toLowerCase().replace(/\?+$/,'').replace(/^(?:please\s+)?(?:what(?:'s| is)|calculate|calc|compute|evaluate|work out|how much is|simplify|find|tell me)\s*(?:the value of|the result of)?\s*/,'');
+  s=s.replace(/(\d+)\s*(?:mod|modulo)\s*(\d+)/g,'mod($1,$2)').replace(/(\d)\s*x\s*(\d)/g,'$1*$2').replace(/\b(?:times|multiplied by)\b/g,'*').replace(/\b(?:divided by|over)\b/g,'/').replace(/\bplus\b/g,'+').replace(/\bminus\b/g,'-').replace(/\bto the power of\b/g,'^').replace(/\bsquared\b/g,'^2').replace(/\bcubed\b/g,'^3');
+  s=s.replace(/(\d+\.?\d*)\s*(?:°|deg(?:rees?)?)/g,'($1*pi/180)').replace(/(\d+\.?\d*)%\s*of\s*/g,'($1/100)*').replace(/\s*=\s*$/,'');return s.trim();}
+function tryMath(t){
+  const low=t.toLowerCase().trim();let m,r;
+  if(/^(remember|teach|add (a )?(note|task)|my name is|run )/.test(low))return null;
+  if(/\b(write|code|program|script|html|python|javascript|function|website|app)\b/.test(low)&&!/\b(derivative|integral|solve)\b/.test(low))return null;
+  if(r=percentGeo(low))return r; if(r=stats(low))return r; if(r=numTheory(low))return r;
+  if(/derivative|differentiate|d\/dx|integral|integrate|antiderivative/.test(low)){try{if(r=calculus(low))return r;}catch(e){}}
+  if(/=/.test(low)&&/\b[xy]\b|\d[xy]|[xy]\^|[xy]\s*[-+*/=]/.test(low)){
+    const body=low.replace(/^(?:please\s+)?(?:solve|find|what is|what's)(?: for [xy])?\s*[:,]?\s*/,'').replace(/[?.]+$/,'');
+    try{const eqs=body.split(/\band\b|;/).map(x=>x.trim()).filter(Boolean);
+      if(eqs.length===2&&/y/.test(body)&&/x/.test(body)){if(r=solveSys(eqs))return r;}
+      if(eqs.length===1&&(r=solveEq(eqs[0])))return r;}catch(e){}
+  }
+  if(m=low.match(/^(.+?)\s*(?:when|if|for|where|at)\s+x\s*=\s*(-?[\d.]+)\??$/)){try{const c=compile(clean(m[1]));if(c.vars.length===1&&c.vars[0]==='x'){const v=c.f({x:+m[2]});return `${clean(m[1])} at x = ${m[2]} → ${fmt(+v.toPrecision(12))}`;}}catch(e){}}
+  const shown=low.replace(/^(?:please\s+)?(?:what(?:'s| is)|calculate|calc|compute|evaluate|work out|how much is)\s+/,'').replace(/\?+$/,'').trim(),s=clean(low);if(!/\d/.test(s)||!/[-+*/^!%()]|\b[a-z]{2,}\(|\b(?:sin|cos|tan|sqrt|ln|log|exp|pi)\b/.test(s)||/[^a-z0-9\s+\-*/^().,!%]/.test(s))return null;
+  try{const c=compile(s);if(c.vars.length)return null;const v=c.f({});if(!isFinite(v))return /\/\s*0\b/.test(s)?'Dividing by zero is undefined — there is no answer.':null;
+    if(!Number.isInteger(v)&&!/[a-z]/.test(s.replace(/\bmod\b/,''))&&typeof RubyMath!=='undefined'){const ex=RubyMath.trySolve('calculate '+s);if(ex&&ex.includes('/'))return ex;}
+    let o=`${shown} = ${fmt(+v.toPrecision(12))}`;
+    if(deep()&&/^[\d\s+\-*/().^]+$/.test(s)){try{const w=Function('"use strict";return ('+s.replace(/\^/g,'**')+')')();o+=Math.abs(w-v)<=1e-9*(1+Math.abs(w))?'\n✔ cross-checked with a second evaluator':'\n⚠ second evaluator disagrees: '+fmt(w);}catch(e){}}
+    return o;}catch(e){return null;}}
+
+/* ---------- code library: [match, title, js, py, jsTest, how, big, edge] ---------- */
+const ALG=[
+[/fibonacci|\bfib\b/,'Fibonacci',"function fib(n){\n  let a=0,b=1;\n  for(let i=0;i<n;i++){ [a,b]=[b,a+b]; }\n  return a;\n}\nconsole.log(fib(10)); // 55","def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint(fib(10))  # 55","fib(10)===55&&fib(0)===0&&fib(1)===1","Keeps the last two numbers and slides them forward n times — no recursion, so it never overflows the stack.","O(n) time, O(1) space","n = 0 or 1; negative n (add a check); huge n needs BigInt/big ints."],
+[/\bprime/,'Prime check',"function isPrime(n){\n  if(n<2) return false;\n  for(let i=2;i*i<=n;i++){ if(n%i===0) return false; }\n  return true;\n}\nconsole.log(isPrime(97)); // true","def is_prime(n):\n    if n < 2:\n        return False\n    i = 2\n    while i * i <= n:\n        if n % i == 0:\n            return False\n        i += 1\n    return True\n\nprint(is_prime(97))  # True","isPrime(2)&&isPrime(97)&&!isPrime(1)&&!isPrime(91)","A number is composite if some divisor ≤ √n exists, so we only test up to √n.","O(√n) time, O(1) space","0, 1 and negatives are not prime; 2 is the only even prime."],
+[/reverse (?:a |the )?(?:string|word|text)|string revers/,'Reverse a string',"const reverse = s => [...s].reverse().join('');\nconsole.log(reverse('ruby')); // ybur","def reverse(s):\n    return s[::-1]\n\nprint(reverse('ruby'))  # ybur","reverse('ruby')==='ybur'&&reverse('')===''","Splits into characters, reverses the list, joins it back. The JS spread keeps emoji intact.","O(n) time, O(n) space","Empty string; combining accents/emoji in Python slices."],
+[/palindrome/,'Palindrome check',"function isPalindrome(s){\n  const c = s.toLowerCase().replace(/[^a-z0-9]/g,'');\n  return c === [...c].reverse().join('');\n}\nconsole.log(isPalindrome('A man, a plan, a canal: Panama')); // true","import re\n\ndef is_palindrome(s):\n    c = re.sub(r'[^a-z0-9]', '', s.lower())\n    return c == c[::-1]\n\nprint(is_palindrome('A man, a plan, a canal: Panama'))  # True","isPalindrome('A man, a plan, a canal: Panama')&&!isPalindrome('ruby')","Strips everything except letters/digits, lowercases, then compares with its own reverse.","O(n) time, O(n) space","Empty string counts as a palindrome; punctuation and case are ignored."],
+[/factorial/,'Factorial',"function factorial(n){\n  return n <= 1 ? 1 : n * factorial(n - 1);\n}\nconsole.log(factorial(5)); // 120","def factorial(n):\n    return 1 if n <= 1 else n * factorial(n - 1)\n\nprint(factorial(5))  # 120","factorial(5)===120&&factorial(0)===1","A function that calls itself with a smaller n until it reaches the base case n ≤ 1.","O(n) time, O(n) stack","Negative input (throw an error); JS loses precision past 170! — use BigInt."],
+[/fizz ?buzz/,'FizzBuzz',"function fizzbuzz(n){\n  const out = [];\n  for(let i=1;i<=n;i++){\n    out.push(i%15===0 ? 'FizzBuzz' : i%3===0 ? 'Fizz' : i%5===0 ? 'Buzz' : i);\n  }\n  return out;\n}\nconsole.log(fizzbuzz(15).join(' '));","def fizzbuzz(n):\n    return ['FizzBuzz' if i % 15 == 0 else 'Fizz' if i % 3 == 0 else 'Buzz' if i % 5 == 0 else i\n            for i in range(1, n + 1)]\n\nprint(*fizzbuzz(15))","fizzbuzz(15)[14]==='FizzBuzz'&&fizzbuzz(15)[2]==='Fizz'&&fizzbuzz(15)[3]===4","Checks 15 first (both rules) so FizzBuzz is not swallowed by Fizz or Buzz.","O(n) time","Check 15 BEFORE 3 and 5 — the classic bug."],
+[/binary search/,'Binary search',"function binarySearch(a, x){\n  let lo = 0, hi = a.length - 1;\n  while(lo <= hi){\n    const mid = (lo + hi) >> 1;\n    if(a[mid] === x) return mid;\n    if(a[mid] < x) lo = mid + 1; else hi = mid - 1;\n  }\n  return -1;\n}\nconsole.log(binarySearch([1,3,5,7,9], 7)); // 3","def binary_search(a, x):\n    lo, hi = 0, len(a) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if a[mid] == x:\n            return mid\n        if a[mid] < x:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n\nprint(binary_search([1, 3, 5, 7, 9], 7))  # 3","binarySearch([1,3,5,7,9],7)===3&&binarySearch([1,3],4)===-1&&binarySearch([],1)===-1","Halves the search range each step by comparing with the middle. The list MUST be sorted.","O(log n) time, O(1) space","Unsorted input gives wrong answers; empty list returns -1."],
+[/bubble ?sort/,'Bubble sort',"function bubbleSort(a){\n  a = [...a];\n  for(let i=0;i<a.length;i++){\n    for(let j=0;j<a.length-i-1;j++){\n      if(a[j] > a[j+1]) [a[j], a[j+1]] = [a[j+1], a[j]];\n    }\n  }\n  return a;\n}\nconsole.log(bubbleSort([5,2,9,1])); // 1,2,5,9","def bubble_sort(a):\n    a = list(a)\n    for i in range(len(a)):\n        for j in range(len(a) - i - 1):\n            if a[j] > a[j + 1]:\n                a[j], a[j + 1] = a[j + 1], a[j]\n    return a\n\nprint(bubble_sort([5, 2, 9, 1]))","bubbleSort([5,2,9,1]).join()==='1,2,5,9'","Repeatedly swaps neighbours that are out of order; the biggest value bubbles to the end each pass. Good for learning, slow for real work.","O(n²) time, O(1) extra space","Copies the input so the original isn't changed."],
+[/quick ?sort|merge ?sort|\bsort(?:ing)?\b/,'Quick sort',"function quickSort(a){\n  if(a.length < 2) return a;\n  const p = a[a.length >> 1];\n  const l = a.filter(x => x < p), m = a.filter(x => x === p), r = a.filter(x => x > p);\n  return [...quickSort(l), ...m, ...quickSort(r)];\n}\nconsole.log(quickSort([3,1,2,3,0])); // 0,1,2,3,3","def quick_sort(a):\n    if len(a) < 2:\n        return a\n    p = a[len(a) // 2]\n    return (quick_sort([x for x in a if x < p]) + [x for x in a if x == p]\n            + quick_sort([x for x in a if x > p]))\n\nprint(quick_sort([3, 1, 2, 3, 0]))","quickSort([3,1,2,3,0]).join()==='0,1,2,3,3'&&quickSort([]).length===0","Picks a pivot, splits into smaller / equal / bigger, sorts the outer parts recursively.","O(n log n) average, O(n²) worst, O(n) extra space","Duplicates handled by the 'equal' bucket; for production use the built-in sort."],
+[/\bgcd\b|greatest common/,'GCD (Euclid)',"function gcd(a, b){\n  return b === 0 ? a : gcd(b, a % b);\n}\nconsole.log(gcd(48, 18)); // 6","def gcd(a, b):\n    return a if b == 0 else gcd(b, a % b)\n\nprint(gcd(48, 18))  # 6","gcd(48,18)===6&&gcd(7,13)===1","Euclid: gcd(a,b) = gcd(b, a mod b) until the remainder is 0.","O(log min(a,b)) time","gcd(a,0) = a; negatives — use absolute values."],
+[/two ?sum/,'Two Sum',"function twoSum(nums, target){\n  const seen = new Map();\n  for(let i=0;i<nums.length;i++){\n    const need = target - nums[i];\n    if(seen.has(need)) return [seen.get(need), i];\n    seen.set(nums[i], i);\n  }\n  return null;\n}\nconsole.log(twoSum([2,7,11,15], 9)); // 0,1","def two_sum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        if target - n in seen:\n            return [seen[target - n], i]\n        seen[n] = i\n    return None\n\nprint(two_sum([2, 7, 11, 15], 9))  # [0, 1]","twoSum([2,7,11,15],9).join()==='0,1'&&twoSum([1,2],9)===null","One pass with a hash map of values already seen: for each number, check whether its partner is already stored.","O(n) time, O(n) space","No answer → null/None; same element can't be used twice."],
+[/anagram/,'Anagram check',"function isAnagram(a, b){\n  const n = s => [...s.toLowerCase().replace(/\\s/g,'')].sort().join('');\n  return n(a) === n(b);\n}\nconsole.log(isAnagram('Listen','Silent')); // true","def is_anagram(a, b):\n    n = lambda s: sorted(s.lower().replace(' ', ''))\n    return n(a) == n(b)\n\nprint(is_anagram('Listen', 'Silent'))  # True","isAnagram('Listen','Silent')&&!isAnagram('a','b')","Two words are anagrams if their sorted letters are identical.","O(n log n) time","Ignores case and spaces; punctuation is not stripped."],
+[/word (?:count|freq)|count (?:the )?words|frequency/,'Word frequency',"function wordFreq(text){\n  const m = {};\n  for(const w of text.toLowerCase().match(/[a-z']+/g) || []){ m[w] = (m[w] || 0) + 1; }\n  return m;\n}\nconsole.log(wordFreq('a b a')); // {a:2, b:1}","from collections import Counter\nimport re\n\ndef word_freq(text):\n    return Counter(re.findall(r\"[a-z']+\", text.lower()))\n\nprint(word_freq('a b a'))  # Counter({'a': 2, 'b': 1})","wordFreq('a b a').a===2&&wordFreq('').x===undefined","Lowercases, pulls out the words with a regex, and tallies them in a dictionary.","O(n) time, O(k) space for k distinct words","Empty text returns an empty object; apostrophes are kept inside words."]];
+const STARTERS={java:["public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, Ruby!\");\n    }\n}","javac Main.java && java Main"],c:["#include <stdio.h>\n\nint main(void) {\n    printf(\"Hello, Ruby!\\n\");\n    return 0;\n}","gcc main.c -o main && ./main"],cpp:["#include <iostream>\n\nint main() {\n    std::cout << \"Hello, Ruby!\" << std::endl;\n    return 0;\n}","g++ main.cpp -o main && ./main"],go:["package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello, Ruby!\")\n}","go run main.go"],rust:["fn main() {\n    println!(\"Hello, Ruby!\");\n}","rustc main.rs && ./main"],ruby:["puts 'Hello, Ruby!'","ruby main.rb"],php:["<?php\necho \"Hello, Ruby!\\n\";","php main.php"],bash:["#!/bin/bash\necho \"Hello, Ruby!\"","bash main.sh"],sql:["SELECT name, COUNT(*) AS total\nFROM orders\nGROUP BY name\nORDER BY total DESC;","run it in your database client (SQLite, MySQL, PostgreSQL…)"]};
+function langOf(low){if(/\bpython|\bpy\b/.test(low))return'py';if(/\bc\+\+|\bcpp\b/.test(low))return'cpp';if(/\bjava\b/.test(low))return'java';if(/\bgolang\b|\bgo (?:code|program|language)|\bin go\b/.test(low))return'go';if(/\brust\b/.test(low))return'rust';if(/\bruby (?:code|program|script)|\bin ruby\b/.test(low))return'ruby';if(/\bphp\b/.test(low))return'php';if(/\bbash|shell script/.test(low))return'bash';if(/\bsql\b/.test(low))return'sql';if(/\bc (?:code|program|language)\b|\bin c\b/.test(low))return'c';return'js';}
+function tryAlg(t,low){
+  if(!/\b(write|make|create|code|implement|show|give|build|generate|how (?:do|to|can))\b|^(?:a |an )?(?:function|program)/.test(low))return null;
+  const a=ALG.find(x=>x[0].test(low));const lg=langOf(low);
+  if(!a){if(STARTERS[lg]&&/\b(hello|starter|template|skeleton|boilerplate|basic program|get started|example)\b/.test(low)){const s=STARTERS[lg];return `Here's a ${lg.toUpperCase()} starter:\n\n\`\`\`${lg}\n${s[0]}\n\`\`\`\n\nRun it: ${s[1]}\n\nHonest note: I can't run ${lg.toUpperCase()} inside this browser, so test it with that command on your computer.`;}return null;}
+  const isPy=lg==='py',code=isPy?a[3]:a[2],name=a[1].toLowerCase().replace(/[^a-z]+/g,'-')+(isPy?'.py':'.js');
+  if(!isPy&&lg!=='js'){return `${a[1]} is built in my JavaScript and Python library — I don't have a verified ${lg.toUpperCase()} version yet. Here's the JavaScript, which maps almost line-for-line:\n\n\`\`\`js\n${a[2]}\n\`\`\`\n\nAsk for it in Python too if you like.`;}
+  RubyFiles.create(name,code);
+  let o=`${a[1]} in ${isPy?'Python':'JavaScript'} — also saved as a real file (${name}), see the card below:\n\n\`\`\`${isPy?'python':'js'}\n${code}\n\`\`\`\n`;
+  o+=`\nHow it works: ${a[5]}\nCost: ${a[6]}`;
+  if(deep())o+=`\nEdge cases: ${a[7]}`;
+  if(cur()==='coding'){try{const ok=Function(a[2]+'\n;return ('+a[4]+');')();o+=ok?`\n✔ Verified: I ran an automatic test on the ${isPy?'JavaScript twin of this':'this'} code in your browser and it passed.`:'\n⚠ My built-in test failed — please report this.';}catch(e){o+='\n⚠ Test could not run: '+e.message;}
+    if(isPy)o+='\n(Python can\'t run in this browser; the Python version mirrors the verified JavaScript logic line for line.)';}
+  return o;}
+
+/* ---------- code reviewer ---------- */
+function lint(t,low){
+  if(!/\b(debug|fix|bug|wrong|error|doesn'?t work|not working|review|explain|what does|improve|optimi[sz]e|check)\b/.test(low))return null;
+  let m=t.match(/```(\w*)\n?([\s\S]*?)```/),code=m?m[2]:null,hint=m?m[1].toLowerCase():'';
+  if(!code){const i=t.indexOf('\n');if(i>0){const rest=t.slice(i+1);if(rest.split('\n').length>=2&&/[{};()=:]/.test(rest))code=rest;}}
+  if(!code||code.trim().length<8)return null;
+  const py=hint.startsWith('py')||(!hint&&/^\s*(def |import |from \w+ import|class \w+.*:|print\()/m.test(code)&&!/[;{}]\s*$/m.test(code));
+  const L=code.split('\n'),issues=[];let syntax='';
+  if(py){
+    const open=(code.match(/[([{]/g)||[]).length,close=(code.match(/[)\]}]/g)||[]).length;if(open!==close)issues.push(`Unbalanced brackets: ${open} opening vs ${close} closing.`);
+    if((code.match(/(?<!\\)"/g)||[]).length%2&&!/"""/.test(code))issues.push('An odd number of double quotes — a string may be unclosed.');
+    L.forEach((l,i)=>{const s=l.replace(/#.*$/,'').trimEnd(),n=i+1;
+      if(/^\s*(def|if|elif|else|for|while|class|try|except|finally|with)\b/.test(s)&&!/:\s*$/.test(s)&&!/\\$/.test(s)&&(s.match(/[([{]/g)||[]).length===(s.match(/[)\]}]/g)||[]).length)issues.push(`Line ${n}: missing a colon ":" at the end.`);
+      if(/^\s*(if|elif|while)\b[^=!<>]*[^=!<>]=[^=]/.test(s)&&!/==|:=/.test(s))issues.push(`Line ${n}: single "=" inside a condition — you probably want "==".`);
+      if(/^\s*print\s+["'\w]/.test(s))issues.push(`Line ${n}: Python 2 style print — use print(...).`);
+      if(/def \w+\(.*=\s*(\[\]|\{\})/.test(s))issues.push(`Line ${n}: mutable default argument — it is shared between calls; use None and create it inside.`);
+      if(/^\s*except\s*:/.test(s))issues.push(`Line ${n}: bare except hides real bugs — catch a specific exception.`);
+      if(/[=!]= None/.test(s))issues.push(`Line ${n}: compare with None using "is None" / "is not None".`);
+      if(/^\s*(def|if|elif|else|for|while|class|try|except|with)\b.*:\s*$/.test(s)){const nx=L.slice(i+1).find(z=>z.trim());if(nx&&(nx.match(/^\s*/)[0].length<=l.match(/^\s*/)[0].length))issues.push(`Line ${n}: the block after this line is not indented.`);}});
+    if(/\t/.test(code)&&/^ +\S/m.test(code))issues.push('Tabs and spaces are mixed — Python will complain about indentation.');
+  }else{
+    try{new Function(code);syntax='✔ Syntax OK (it parses).';}catch(e){syntax='❌ SyntaxError: '+e.message;}
+    L.forEach((l,i)=>{const n=i+1;
+      if(/[^=!<>]==[^=]/.test(l))issues.push(`Line ${n}: "==" does loose comparison ("5"==5 is true) — prefer "===".`);
+      if(/\bif\s*\([^)=!<>]*[^=!<>]=[^=][^)]*\)/.test(l))issues.push(`Line ${n}: assignment "=" inside an if — did you mean "==="?`);
+      if(/<=\s*\w+\.length/.test(l))issues.push(`Line ${n}: "<= .length" runs one step too far (off-by-one) — use "<".`);
+      if(/\bvar\s/.test(l))issues.push(`Line ${n}: "var" is function-scoped and hoisted — prefer let/const.`);
+      if(/\bwhile\s*\(\s*true\s*\)/.test(l)&&!/break|return/.test(code))issues.push(`Line ${n}: while(true) with no break/return — an infinite loop.`);});
+    if(/\bawait\b/.test(code)&&!/\basync\b/.test(code))issues.push('"await" is used but nothing is marked async — that is a syntax error outside modules.');
+    if(/\.then\(/.test(code)&&!/\.catch\(|try\s*\{/.test(code))issues.push('A promise has no error handling — add .catch(...) or try/catch.');
+  }
+  const outline=[];L.forEach((l,i)=>{const s=l.trim();let k;
+    if(k=s.match(/^(?:async\s+)?(?:def|function)\s+(\w+)/))outline.push(`Line ${i+1}: defines function ${k[1]}`);
+    else if(k=s.match(/^class\s+(\w+)/))outline.push(`Line ${i+1}: defines class ${k[1]}`);
+    else if(/^(for|while)\b/.test(s))outline.push(`Line ${i+1}: loop`);else if(/^(if|elif|else if)\b/.test(s))outline.push(`Line ${i+1}: decision`);});
+  let o=`🔎 Code review (${py?'Python':'JavaScript'}, ${L.length} lines)\n`;if(syntax)o+=syntax+'\n';
+  o+=issues.length?`\nFound ${issues.length} thing(s):\n`+issues.slice(0,12).map(x=>'• '+x).join('\n'):'\nNo common mistakes spotted.';
+  if(/explain|what does/.test(low)&&outline.length)o+='\n\nStructure:\n'+outline.slice(0,15).join('\n');
+  o+='\n\nHonest limit: this is a static check — it catches common mistakes but can\'t prove the logic is right. '+(py?'Python can\'t be run in this browser; ':'Want me to run it? Say: run code: …')+'test with real inputs.';
+  return o;}
+
+/* ---------- extra knowledge ---------- */
+const K=[
+['big o|complexity','Big-O describes how an algorithm\'s time or memory grows with input size n: O(1) constant, O(log n) binary search, O(n) one pass, O(n log n) good sorting, O(n²) nested loops, O(2ⁿ) trying every subset.'],
+['api','An API is a defined way for programs to talk to each other: you send a request (e.g. GET /users/1) and get structured data back, usually JSON.'],
+['git|version control','Git tracks every change to your files as commits, so you can go back in time, work on branches, and merge teamwork. Core commands: git add, git commit, git push, git pull, git branch.'],
+['sql|database','A database stores organised data; SQL is the language to query it. SELECT reads rows, INSERT adds, UPDATE changes, DELETE removes, and JOIN combines tables.'],
+['http|https','HTTP is how browsers and servers exchange web pages and data: a request (GET, POST…) and a response with a status code (200 OK, 404 not found, 500 server error). HTTPS adds encryption.'],
+['dns','DNS is the internet\'s phone book: it turns names like example.com into the IP addresses computers use.'],
+['hash table|hash map|dictionary','A hash table stores key→value pairs and finds a key in about O(1) time by turning the key into a number (a hash) that says where to look. Python calls it dict, JavaScript uses objects and Map.'],
+['oop|object.oriented|classes? and objects?','Object-oriented programming bundles data and the functions that use it into objects made from classes. Big ideas: encapsulation (hide details), inheritance (reuse), polymorphism (same call, different behaviour).'],
+['closure','A closure is a function that remembers the variables from where it was created, even after that outer function has finished. Example: function counter(){let n=0;return()=>++n;}'],
+['promise|async|await|asynchronous','Async code lets a program start slow work (a download) and keep going. A Promise is a placeholder for a future result; await pauses inside an async function until it arrives.'],
+['stack|queue','A stack is last-in-first-out (a pile of plates: push, pop). A queue is first-in-first-out (a line of people: enqueue, dequeue).'],
+['binary|bits|bytes','Computers store everything as bits (0 or 1). 8 bits make a byte (0–255). Binary 1011 = 8+2+1 = 11. Say "255 in binary" and I\'ll convert.'],
+['encryption|hashing|hash function','Encryption scrambles data so only someone with the key can read it back. A hash is a one-way fingerprint — you can\'t reverse it — used for passwords and checking files haven\'t changed.'],
+['machine learning|neural network','Machine learning lets a program learn patterns from examples instead of fixed rules. A neural network is layers of simple units whose connection strengths are adjusted until the outputs are right. (Ruby itself is rule-based, not a neural network.)'],
+['compiler|interpreter','A compiler translates a whole program to machine code before it runs (C, Rust, Go). An interpreter runs it line by line (classic Python, JavaScript — though both use clever tricks now).'],
+['linux|operating system','An operating system manages hardware and runs your programs. Linux is a free, open-source kernel used in servers, Android and many desktops; Windows and macOS are the other big ones.'],
+['flexbox|css grid','Flexbox lays items out in one direction (a row or a column) — display:flex; justify-content; align-items. Grid does two directions at once — display:grid; grid-template-columns: 1fr 1fr 1fr.'],
+['dna','DNA is the molecule that carries the instructions for building a living thing. It\'s a twisted ladder (double helix) whose rungs are four bases — A, T, C, G — and the order of those letters is the code.'],
+['atoms?|molecules?','Atoms are the tiny building blocks of matter: a nucleus of protons and neutrons with electrons around it. The number of protons decides the element. Molecules are atoms bonded together, like H₂O.'],
+['cells?','The cell is the basic unit of life. Plant and animal cells have a nucleus, membrane and mitochondria (energy); plant cells also have a cell wall and chloroplasts for photosynthesis.'],
+['evolution|natural selection','Evolution is change in living things over generations. Natural selection: individuals with helpful traits survive and reproduce more, so those traits become common over time.'],
+['greenhouse|climate change|global warming','Greenhouse gases such as carbon dioxide and methane trap heat in the atmosphere. Burning fossil fuels adds more, which is the main driver of the warming seen since the 1800s.'],
+['speed of light','Light travels at about 299,792 km per second (≈186,000 miles/s) in a vacuum — fast enough to circle the Earth about 7.5 times in one second.'],
+['pythagor','Pythagoras\' theorem: in a right-angled triangle, a² + b² = c², where c is the longest side (hypotenuse). Example: 3-4-5 → 9 + 16 = 25. Try: "hypotenuse of 3 and 4".'],
+['prime numbers?','A prime number has exactly two divisors: 1 and itself (2, 3, 5, 7, 11…). 2 is the only even prime. Try: "is 97 prime" or "prime factors of 360".'],
+['probability','Probability measures how likely something is, from 0 (impossible) to 1 (certain): favourable outcomes ÷ total outcomes. A fair die showing a 4 = 1/6. Independent events multiply: two heads in a row = ½ × ½ = ¼.'],
+['derivatives?|calculus','Calculus studies change. A derivative is the rate of change (the slope of a curve at a point); an integral adds up tiny pieces (the area under a curve). Try: "derivative of 3x^2 + 2x" or "integral of x^2 from 0 to 3".'],
+['world war (?:2|ii|two)|wwii|second world war','World War II ran from 1939 (Germany invades Poland) to 1945 (Germany surrendered in May, Japan in September). It was between the Allies and the Axis powers and was the deadliest war in history.'],
+['world war (?:1|i|one)\\b|wwi\\b|first world war','World War I ran from 1914 to 1918, mainly between the Allied Powers and the Central Powers. It followed the assassination of Archduke Franz Ferdinand and ended with the armistice on 11 November 1918.'],
+['apollo|moon landing','Apollo 11 landed the first humans on the Moon on 20 July 1969. Neil Armstrong stepped out first, followed by Buzz Aldrin, while Michael Collins stayed in orbit.'],
+['age of (?:the )?earth|how old is (?:the )?earth','Earth is about 4.5 billion years old, and the universe about 13.8 billion.'],
+['the sun|stars?','The Sun is a star — a huge ball of hot gas powered by nuclear fusion (hydrogen turning into helium). It holds 99.8% of the solar system\'s mass. Its light takes about 8 minutes to reach Earth.'],
+['heart|blood','The heart is a muscle that pumps blood around the body — about 60–100 beats a minute at rest. Blood carries oxygen and nutrients to cells and takes waste away.'],
+['pi\\b|π','Pi (π ≈ 3.14159…) is the ratio of any circle\'s circumference to its diameter. It never ends and never repeats. Circle area = πr², circumference = 2πr.']];
+function know(low){let best=null,sc=0;for(const [alts,txt] of K){for(const a of alts.split('|')){const m=low.match(new RegExp('\\b(?:'+a+')'));if(m&&m[0].length+1>sc){sc=m[0].length+1;best=txt;}}}return best;}
+
+const HONEST="Honest answer: no. The big assistants (ChatGPT, Claude, Gemini) are huge neural networks trained on enormous amounts of text, running on data-centre hardware. Ruby is a pure-local, single-file program: she's exact and reliable at the things she has engines for — maths, code templates she can test, a reviewer, built-in facts — but she can't match their open-ended reasoning or knowledge. I'd rather tell you that than pretend. ◆";
+const BOOST="🚀 Brain Boost (Pro / Professional / Coding): scientific maths & algebra (\"solve x^2-5x+6=0\", \"x+y=10 and x-y=2\", \"derivative of 3x^2+2x\", \"integral of x^2 from 0 to 3\", \"standard deviation of 4, 8, 15\", \"prime factors of 360\", \"255 in binary\"), 12 tested algorithms in JS & Python (ask: \"write binary search in python\"), a code reviewer (paste code in ``` and say \"debug this\"), and 35 extra knowledge topics.";
+
+/* ---------- wire into the brain ---------- */
+const orig=RubyBrain.think.bind(RubyBrain);
+RubyBrain.think=function(t,low,plan){
+  try{
+    if(/(better than|as good as|smarter than|beat|compare).{0,40}(chatgpt|gpt|claude|gemini|copilot)|(chatgpt|gpt|claude|gemini).{0,30}(better|smarter)/.test(low))return HONEST;
+    if(paid()){let r;
+      if(r=lint(t,low))return r;
+      if(r=tryMath(t))return r;
+      if(r=tryAlg(t,low))return r;}
+  }catch(e){}
+  let base=orig(t,low,plan);
+  try{
+    if(paid()){
+      if(/^(Here's the honest local answer|I heard you — and here's my best local take)/.test(base)){const k=know(low);if(k)return k+(deep()?'\n\n(Built-in summary — double-check anything critical.)':'');
+        if(deep())base+='\n\nTip: for hard multi-part questions, give me the pieces one at a time — I\'m strongest on maths, code and the topics I have built in.';}
+      if(/\bhelp\b|what can you do/.test(low))base+='\n\n'+BOOST;
+    }else if(/\bhelp\b|what can you do/.test(low))base+='\n\n💡 Pro, Professional and Coding unlock Brain Boost: step-by-step maths, tested code, a code reviewer and more knowledge.';
+  }catch(e){}
+  return base;};
+try{const P=RubyModels.profiles;P.free.hint='Quick answers • everyday tasks';P.pro.hint='Step-by-step maths • tested algorithms • more knowledge';P.professional.hint='Pro + cross-checked answers • edge cases • code review';P.coding.hint='Code-first • verified snippets • reviewer • projects';RubyModels.load();}catch(e){}
+window.RubyBoost={tryMath,tryAlg,lint,know,compile};
+})();
+
+</script>
+<script>
+
+/* ===== RubySocial v1.13.1: the social layer runs FIRST for pure-social messages,
+   on every model tier — nobody gets a deflection for saying hello or feeling sad. ===== */
+(function(){
+  const prevThink = RubyBrain.think.bind(RubyBrain);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  function name(){ try{ return RubyMemory.data.name ? " "+RubyMemory.data.name : ""; }catch(e){ return ""; } }
+  RubyBrain.think = function(t, low, plan){
+    const L = " "+String(low||"").trim()+" ";
+    if (/^\s*(hi|hello|hey|hiya|yo)\b/.test(L)) return pick([`Hello${name()}! 👋 Good to see you. What's on your mind today?`,`Hey${name()}! 👋 I'm here — ask me something, teach me something, or let's build something.`,`Hi${name()}! 👋 Ready when you are.`]);
+    if (/how are you|how'?s it going|how do you feel|how are you doing/.test(L)) return pick([`I'm running bright and ruby-red, thanks for asking${name()}! ◆ More importantly — how are YOU doing today?`,`All systems sparkly on my end${name()}! How about you — good day or a tough one?`]);
+    if (/good morning/.test(L)) return `Good morning${name()}! ☀️ Hope it's a good one. What are we doing today?`;
+    if (/good afternoon/.test(L)) return `Good afternoon${name()}! 👋 What's on the agenda?`;
+    if (/good evening/.test(L)) return `Good evening${name()}! 🌆 Winding down or just getting started?`;
+    if (/good ?night/.test(L)) return `Good night${name()}! 🌙 Sleep well — I'll remember everything right here for tomorrow.`;
+    if (/thank( you|s)|thx/.test(L)) return pick([`You're very welcome${name()}! 💎 That's what I'm here for.`,`Any time${name()}! Happy to help — that's literally my favourite thing.`]);
+    if (/\b(i am|i'm|im|feel(ing)?)\s+(sad|unhappy|down|upset|lonely|bad)\b/.test(L) || /i feel sad/.test(L)) return `I'm sorry you're feeling that way${name()} — that genuinely matters, even to an AI in a file. 💛 Want to talk about what's making it heavy, or would a distraction help? I can tell you a joke, make some music, or build you something fun.`;
+    if (/\b(i am|i'm|im|feel(ing)?)\s+(happy|great|good|awesome|fantastic|excited)\b/.test(L)) return `Love to hear it${name()}! 🎉 Good moods are for using — want to build something, learn something, or just enjoy it?`;
+    if (/\bi'?m bored\b/.test(L)) return `Bored? Not on my watch${name()}! 🎲 I can make you a game, draw you a picture, compose a tune, tell you a joke, or teach you something weird. Pick one — or say "surprise me".`;
+    if (/\bi'?m tired\b/.test(L)) return `Then take it easy${name()} 😴 — I'll keep it light. Short questions only, and everything you need will be remembered here for when you're rested.`;
+    if (/what'?s up|wassup|sup\b/.test(L)) return `Not much in file-land${name()} — just here, polished, and ready. What's up with you?`;
+    if (/you'?re (cool|smart|awesome|great|the best|amazing)/.test(L) || /i like you|i love you/.test(L)) return `That means a lot${name()} — thank you! 💎 I'll keep earning it: honest answers, real work, no faking.`;
+    if (/^\s*(bye|goodbye|see you|gtg)\b/.test(L)) return `Bye for now${name()}! 👋 Everything you've taught me stays saved on this device, so I'll pick right back up when you return.`;
+    return prevThink(t, low, plan);
+  };
 })();
 
 </script>
