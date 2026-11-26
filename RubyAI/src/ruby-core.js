@@ -1,4 +1,4 @@
-// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.1.html (brain + Studio + Voice + Code School + Brain Boost + Social + Dictionary/Polish)
+// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.2.html
 
 "use strict";
 /* ============================================================
@@ -1557,6 +1557,38 @@ const RUBY_SORRY = "I'm sorry, I can't help you with that right now — please t
     const out = prevThink(t, low, plan);
     if (typeof out === "string" && /best local take|don'?t have a built-in answer|honest local answer|built-in knowledge yet|rephrase it as a code task|never makes up fake|top-tier (answer|model)/i.test(out)) return RUBY_SORRY;
     return out;
+  };
+})();
+
+
+
+
+/* ===== v1.14.2: day reports — "my day was good" is conversation, not an error ===== */
+(function(){
+  const prevThink = RubyBrain.think.bind(RubyBrain);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  function nm(){ try{ return RubyMemory.data.name ? " "+RubyMemory.data.name : ""; }catch(e){ return ""; } }
+  RubyBrain.think = function(t, low, plan){
+    const L = " "+String(low||"").trim()+" ";
+    const GOOD = /(my day|today|it|the day) (was|is|has been|went) (really |so |very |pretty )?(a |an )?(good|great|amazing|awesome|fantastic|wonderful|lovely|nice|fine|okay|alright|brilliant|perfect)/;
+    const BAD = /(my day|today|it|the day) (was|is|has been|went) (really |so |very |pretty )?(a |an )?(bad|terrible|awful|horrible|rough|hard|tough|long|tiring|boring|stressful|sad)/;
+    if (GOOD.test(L)) return pick([
+      `That's great to hear${nm()}! 🎉 A good day is worth noticing. What was the best part of it?`,
+      `Love that${nm()}! ◆ Good days are the ones worth remembering — what made this one good?`,
+      `Really glad to hear it${nm()}! Here's hoping tomorrow treats you the same way. ✨`]);
+    if (BAD.test(L)) return pick([
+      `I'm sorry it went that way${nm()} 💛 Rough days are heavy. Want to talk about what happened, or would a distraction help — joke, music, a game?`,
+      `That sounds like a lot${nm()}. For what it's worth, you got through it. Want to vent about it, or shall I cheer you up?`]);
+    if (/\bi had a (good|great|amazing|lovely|nice) day\b/.test(L)) return `That's great to hear${nm()}! 🎉 What was the best part?`;
+    if (/\bi had a (bad|terrible|awful|rough|hard|long) day\b/.test(L)) return `I'm sorry${nm()} 💛 Bad days are exhausting. Talk about it, or distraction — joke, music, game?`;
+    if (/\b(school|work) was (good|great|fun|amazing|nice)\b/.test(L)) return `Nice one${nm()}! 🎉 Days like that make the week. What went well?`;
+    if (/\b(school|work) was (bad|boring|terrible|awful|rough|hard|long)\b/.test(L)) return `Ugh, sorry${nm()} 💛 Those days drag. At least it's behind you now.`;
+    if (/\bi'?m doing (good|great|well|fine|okay|alright|fantastic|amazing)\b/.test(L)) return pick([`Glad to hear it${nm()}! ◆ What's been going well?`,`Good stuff${nm()}! Keep that streak alive — what are you up to today?`]);
+    if (/\bi'?m (good|great|fine|okay|alright)\b/.test(L)) return pick([`Glad to hear it${nm()}! ◆ What's been going well?`,`Good stuff${nm()}! What are you up to today?`]);
+    if (/\bi'?m doing (bad|badly|terrible|awful|not good|not well)\b/.test(L) || /\bi'?m not (good|great|okay|alright|fine|well)\b/.test(L)) return `I'm sorry${nm()} 💛 Want to talk about what's wrong, or would a distraction help?`;
+    if (/\bit'?s been a (good|great|lovely|nice) day\b/.test(L)) return `Really glad${nm()}! 🎉 Those are the days worth remembering.`;
+    if (/\bit'?s been a (bad|long|rough|hard|terrible) day\b/.test(L)) return `I'm sorry${nm()} 💛 Long days are draining. You're through it now, though.`;
+    return prevThink(t, low, plan);
   };
 })();
 
