@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Calculator</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#14141f;font-family:Arial}.box{background:#1e1e2e;padding:18px;border-radius:18px;width:300px;box-shadow:0 16px 40px #000a}#out{background:#0c0c16;color:#fff;font-size:32px;text-align:right;padding:16px;border-radius:12px;min-height:44px;word-break:break-all}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}button{padding:15px 0;font-size:18px;border:0;border-radius:11px;background:#2c2c40;color:#fff;cursor:pointer}button:hover{background:#3a3a56}.op{background:#7b2ff7}.eq{background:#e0112b;grid-column:span 2}</style></head><body>
+<div class="box"><div id="out">0</div><div class="grid" id="grid"></div></div>
+<script>
+const out=document.getElementById('out'); let cur='0',prev=null,op=null;
+function show(){ out.textContent = op? (prev+' '+op+' '+cur) : cur; }
+function press(k){
+ if(/\d/.test(k)||k==='.'){ cur = (cur==='0'&&k!=='.') ? k : (k==='.'&&cur.includes('.')? cur : cur+k); }
+ else if(k==='C'){ cur='0'; prev=null; op=null; }
+ else if(k==='⌫'){ cur = cur.length>1? cur.slice(0,-1) : '0'; }
+ else if(k==='='){ if(prev!==null&&op){ const a=parseFloat(prev),b=parseFloat(cur); let r = op==='+'?a+b : op==='−'?a-b : op==='×'?a*b : (b!==0? a/b : NaN); cur = isNaN(r)? 'Error' : String(Math.round(r*1e10)/1e10); prev=null; op=null; } }
+ else { if(prev!==null&&op){ press('='); } prev=cur; op=k; cur='0'; }
+ show();
+}
+['C','⌫','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].forEach(k=>{ const b=document.createElement('button'); b.textContent=k; if('÷×−+'.includes(k))b.className='op'; if(k==='=')b.className='eq'; if(k==='%'){ b.onclick=()=>{ cur=String(parseFloat(cur)/100); show(); }; } else b.onclick=()=>press(k); document.getElementById('grid').appendChild(b); });
+addEventListener('keydown',e=>{ const map={'/':'÷','*':'×','-':'−','Enter':'=','Escape':'C','Backspace':'⌫'}; const k=map[e.key]||e.key; if(/\d|\.|\+/.test(k)||'÷×−=C⌫'.includes(k)) press(k); });
+show();
+</script></body></html>

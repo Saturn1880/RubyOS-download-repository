@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My To-Do List</title>
+<style>body{margin:0;min-height:100vh;background:#101018;color:#fff;font-family:Arial;display:grid;place-items:start center;padding:28px 14px}.app{width:min(480px,94vw)}h1{color:#ff8a9a}input{width:70%;padding:12px;border-radius:10px;border:1px solid #444;background:#1b1b28;color:#fff;font-size:15px}button{padding:12px 16px;border:0;border-radius:10px;background:#e0112b;color:#fff;cursor:pointer;font-size:15px}li{list-style:none;background:#1b1b28;margin:8px 0;padding:12px;border-radius:10px;display:flex;gap:10px;align-items:center}li.done span{text-decoration:line-through;color:#999}li .sp{flex:1}li button{background:#33334a;padding:7px 11px}ul{padding:0}.count{color:#bbb}</style></head><body>
+<div class="app"><h1>✅ My To-Do List</h1>
+<p><input id="inp" placeholder="What needs doing?"> <button id="add">Add</button></p>
+<p class="count" id="count"></p><ul id="list"></ul>
+<button id="clearDone" style="background:#33334a">Clear finished</button></div>
+<script>
+let items=JSON.parse(localStorage.getItem('todo-items')||'[]');
+const list=document.getElementById('list'), inp=document.getElementById('inp');
+function save(){ localStorage.setItem('todo-items',JSON.stringify(items)); }
+function render(){ list.innerHTML=''; items.forEach((it,i)=>{ const li=document.createElement('li'); if(it.done)li.className='done';
+ const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=it.done; cb.onchange=()=>{ it.done=cb.checked; save(); render(); };
+ const sp=document.createElement('span'); sp.className='sp'; sp.textContent=it.text;
+ const del=document.createElement('button'); del.textContent='🗑'; del.onclick=()=>{ items.splice(i,1); save(); render(); };
+ li.append(cb,sp,del); list.appendChild(li); });
+ document.getElementById('count').textContent = items.length? (items.filter(i=>i.done).length+' of '+items.length+' done') : 'Nothing here yet — add your first task above.'; }
+function add(){ const v=inp.value.trim(); if(!v)return; items.push({text:v,done:false}); inp.value=''; save(); render(); }
+document.getElementById('add').onclick=add; inp.addEventListener('keydown',e=>{ if(e.key==='Enter')add(); });
+document.getElementById('clearDone').onclick=()=>{ items=items.filter(i=>!i.done); save(); render(); };
+render();
+</script></body></html>

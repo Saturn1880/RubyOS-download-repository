@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ruby Windows</title><style>
+*{box-sizing:border-box;margin:0;font-family:Segoe UI,Arial,sans-serif;user-select:none}
+body{height:100vh;overflow:hidden;background:linear-gradient(135deg,#0b3d91,#7b2ff7 55%,#f107a3)}
+#desktop{position:absolute;inset:0 0 48px 0;padding:18px;display:flex;flex-direction:column;flex-wrap:wrap;gap:14px;align-content:flex-start}
+.icon{width:96px;padding:10px 4px 8px;text-align:center;color:#fff;border-radius:10px;cursor:pointer;text-shadow:0 1px 3px #0009}
+.icon:hover{background:#ffffff2b}.icon .g{font-size:38px;display:block}.icon span{font-size:12.5px}
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:48px;background:#10101cd9;backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:0 10px;color:#fff;z-index:999}
+#startBtn{font-size:20px;background:#ffffff1f;border:0;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer}
+#startBtn:hover{background:#ffffff38}
+.taskApp{background:#ffffff14;border:1px solid #ffffff2e;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+#clock{margin-left:auto;font-size:13.5px;text-align:right;line-height:1.15}
+#startMenu{position:absolute;left:10px;bottom:58px;width:280px;background:#16162add;border:1px solid #ffffff2b;border-radius:14px;color:#fff;padding:12px;display:none;z-index:1000;backdrop-filter:blur(10px)}
+#startMenu.open{display:block}
+#startMenu h3{margin:4px 6px 10px;font-size:15px}
+#startMenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;color:#fff;text-align:left;padding:9px;border-radius:9px;cursor:pointer;font-size:14px}
+#startMenu button:hover{background:#ffffff22}
+.win{position:absolute;width:520px;max-width:94vw;height:380px;max-height:78vh;background:#fdfdff;border-radius:12px;box-shadow:0 18px 50px #000a;display:flex;flex-direction:column;overflow:hidden}
+.win.hidden{display:none}
+.titlebar{height:40px;background:linear-gradient(90deg,#283593,#7b2ff7);color:#fff;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;cursor:move;font-size:14px;font-weight:600}
+.titlebar .sp{flex:1}
+.tbtn{width:30px;height:26px;border:0;border-radius:6px;background:#ffffff2a;color:#fff;cursor:pointer;font-size:13px}
+.tbtn:hover{background:#ffffff4d}.tbtn.close:hover{background:#e81123}
+.body{flex:1;overflow:auto;padding:14px;color:#1c1c28;font-size:14.5px;line-height:1.55}
+.body textarea{width:100%;height:100%;border:0;outline:none;resize:none;font-size:15px;font-family:inherit}
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.calc button{padding:13px 0;font-size:17px;border:1px solid #ddd;border-radius:9px;background:#f4f4fa;cursor:pointer}
+.calc button:hover{background:#e6e6ff}
+#calcOut{grid-column:1/-1;background:#14142a;color:#fff;border-radius:9px;padding:12px;font-size:24px;text-align:right;min-height:56px}
+input[type=text],input[type=color]{padding:8px;border:1px solid #ccc;border-radius:8px}
+.body button.act{background:#283593;color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+.tile{display:inline-block;width:104px;height:76px;border-radius:10px;margin:5px;cursor:pointer}
+@media(max-width:640px){.win{width:94vw;height:64vh}}
+</style></head><body>
+<div id="desktop"></div>
+<div id="startMenu"><h3>Ruby Windows</h3><div id="smApps"></div><hr style="border-color:#ffffff2b;margin:8px 0"><button onclick="alert('Thanks for using Ruby Windows!')">⏻ Shut down (not really)</button></div>
+<div id="taskbar"><button id="startBtn" title="Start">🪟</button><div id="taskApps" style="display:flex;gap:8px"></div><div id="clock"></div></div>
+<script>
+const APPS=[
+ {id:'welcome',icon:'👋',name:'Welcome',html:'<h2>Welcome to Ruby Windows!</h2><p>This is a whole desktop that lives in one web page.</p><ul><li><b>Double-click</b> a desktop icon to open its app</li><li><b>Drag</b> any window by its coloured title bar</li><li>Use the <b>—</b> button to minimise, <b>✕</b> to close</li><li>Open apps appear in the taskbar — click to bring them back</li><li>The <b>Start menu</b> (bottom-left) lists every app</li></ul>'},
+ {id:'notes',icon:'📝',name:'Notepad',html:'<textarea id="np" placeholder="Type your notes here… they save automatically."></textarea>',init(){const t=document.getElementById('np');t.value=localStorage.getItem('os-notes')||'';t.oninput=()=>localStorage.setItem('os-notes',t.value);}},
+ {id:'calc',icon:'🧮',name:'Calculator',html:'<div class="calc"><div id="calcOut">0</div></div>',init(){const out=document.getElementById('calcOut');const grid=out.parentElement;let cur='0',prev=null,op=null;const keys=['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+','C'];keys.forEach(k=>{const b=document.createElement('button');b.textContent=k;b.onclick=()=>{if(/\d|\./.test(k)){cur=cur==='0'&&k!=='.'?k:cur+k;}else if(k==='C'){cur='0';prev=null;op=null;}else if(k==='='){if(prev!==null&&op){const a=parseFloat(prev),c=parseFloat(cur);cur=String(op==='+'?a+c:op==='−'?a-c:op==='×'?a*c:c!==0?a/c:'Error');prev=null;op=null;}}else{prev=cur;op=k;cur='0';}out.textContent=op?prev+' '+op+' '+cur:cur;};grid.appendChild(b);});}},
+ {id:'photos',icon:'🖼️',name:'Photos',html:'<p>Your gallery — click a tile to see it big.</p><div id="gal"></div><div id="big" style="margin-top:10px"></div>',init(){const g=document.getElementById('gal');const cols=['#e0112b','#283593','#00897b','#f9a825','#6a1b9a','#00838f','#4e342e','#ad1457'];cols.forEach((c,i)=>{const d=document.createElement('div');d.className='tile';d.style.background='linear-gradient(135deg,'+c+',#111)';d.onclick=()=>{document.getElementById('big').innerHTML='<div style="height:150px;border-radius:12px;background:linear-gradient(135deg,'+c+',#111)"></div><p>Photo '+(i+1)+'</p>';};g.appendChild(d);});}},
+ {id:'settings',icon:'⚙️',name:'Settings',html:'<h3>Personalise</h3><p>Desktop colour: <input type="color" id="bgc" value="#7b2ff7"></p><p style="margin-top:10px">Your name: <input type="text" id="uname" placeholder="Type your name"></p><p id="hi" style="margin-top:10px"></p>',init(){document.getElementById('bgc').oninput=e=>{document.body.style.background='linear-gradient(135deg,#0b3d91,'+e.target.value+')';};document.getElementById('uname').oninput=e=>{document.getElementById('hi').textContent=e.target.value?('Hello, '+e.target.value+'! 👋'):'';};}},
+ {id:'browser',icon:'🌐',name:'Web Browser',html:'<p><input type="text" id="addr" value="https://example.org" style="width:75%"> <button class="act" id="go">Go</button></p><p style="margin-top:10px;color:#555">This pretend browser shows the address you type. (Real browsing needs a real tab — safety rules stop pages loading inside other pages.)</p><div id="fakePage" style="margin-top:12px;border:1px dashed #aaa;border-radius:10px;padding:16px">📄 example.org — a sample page</div>',init(){document.getElementById('go').onclick=()=>{const a=document.getElementById('addr').value;document.getElementById('fakePage').textContent='📄 You asked for: '+a;};}},
+];
+let z=10; const open=new Map();
+const desk=document.getElementById('desktop'), taskApps=document.getElementById('taskApps'), sm=document.getElementById('smApps');
+function makeWindow(app){
+ const w=document.createElement('div'); w.className='win'; w.style.left=(40+open.size*36)+'px'; w.style.top=(30+open.size*30)+'px'; w.style.zIndex=++z;
+ w.innerHTML='<div class="titlebar"><span>'+app.icon+' '+app.name+'</span><span class="sp"></span><button class="tbtn min">—</button><button class="tbtn close">✕</button></div><div class="body">'+app.html+'</div>';
+ document.body.appendChild(w);
+ const bar=w.querySelector('.titlebar');
+ bar.addEventListener('pointerdown',e=>{ if(e.target.classList.contains('tbtn'))return; w.style.zIndex=++z; const dx=e.clientX-w.offsetLeft, dy=e.clientY-w.offsetTop; const mv=ev=>{ w.style.left=Math.max(0,Math.min(innerWidth-80,ev.clientX-dx))+'px'; w.style.top=Math.max(0,Math.min(innerHeight-90,ev.clientY-dy))+'px'; }; const up=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); }; addEventListener('pointermove',mv); addEventListener('pointerup',up); });
+ w.addEventListener('pointerdown',()=>{ w.style.zIndex=++z; });
+ w.querySelector('.close').onclick=()=>{ w.remove(); open.delete(app.id); renderTask(); };
+ w.querySelector('.min').onclick=()=>{ w.classList.add('hidden'); };
+ open.set(app.id,w); if(app.init) app.init(w);
+ return w;
+}
+function renderTask(){ taskApps.innerHTML=''; open.forEach((w,id)=>{ const app=APPS.find(a=>a.id===id); const b=document.createElement('button'); b.className='taskApp'; b.textContent=app.icon+' '+app.name; b.onclick=()=>{ w.classList.remove('hidden'); w.style.zIndex=++z; }; taskApps.appendChild(b); }); }
+function launch(id){ const app=APPS.find(a=>a.id===id); let w=open.get(id); if(!w){ w=makeWindow(app); } w.classList.remove('hidden'); w.style.zIndex=++z; renderTask(); document.getElementById('startMenu').classList.remove('open'); }
+APPS.forEach(app=>{ const d=document.createElement('div'); d.className='icon'; d.innerHTML='<span class="g">'+app.icon+'</span><span>'+app.name+'</span>'; d.ondblclick=()=>launch(app.id); d.onclick=()=>{ if(matchMedia('(pointer:coarse)').matches) launch(app.id); }; desk.appendChild(d);
+ const s=document.createElement('button'); s.innerHTML=app.icon+' '+app.name; s.onclick=()=>launch(app.id); sm.appendChild(s); });
+document.getElementById('startBtn').onclick=()=>document.getElementById('startMenu').classList.toggle('open');
+function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'<br>'+d.toLocaleDateString(); }
+tick(); setInterval(tick,1000);
+launch('welcome');
+</script></body></html>

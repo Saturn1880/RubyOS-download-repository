@@ -38,7 +38,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
 </style></head><body>
-<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.10 Media Studio</div></div>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.11 Media Studio</div></div>
 <div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
 <div class="layout"><aside id="side">
 <h3>💬 Chats</h3>
@@ -556,7 +556,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.10)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.11)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -870,4 +870,342 @@ RubyModels.brains.coding.focus=['identify requirements and target environment','
 const _rubySend=window.send;window.send=function(){const i=document.getElementById('inp');if(RubyStudio.contextText){i.value+='\n\nPlease use the following attached file contents as source material:\n'+RubyStudio.contextText;RubyStudio.contextText='';}return _rubySend();};
 window.addEventListener('paste',e=>{const items=Array.from(e.clipboardData?.items||[]);const files=items.map(x=>x.getAsFile()).filter(Boolean);if(files.length){const imgs=files.filter(f=>f.type.startsWith('image/'));const docs=files.filter(f=>!f.type.startsWith('image/'));if(imgs.length)RubyStudio.handleImages(imgs);if(docs.length)RubyStudio.handleFiles(docs);}});
 const _rubyPlan=RubyModels.plan.bind(RubyModels);RubyModels.plan=function(prompt,id=this.current){const p=_rubyPlan(prompt,id);p.checklist=this.brains[id]||p.checklist;p.review=(id==='professional'||id==='coding'||id==='pro');return p};
-</script></body></html>
+</script><script>
+/* ===== RubyCodeSchool v1.11: Ruby went to coding school.
+   She no longer hands back toy snippets for big asks — she builds COMPLETE apps
+   from the component library she was taught: desktop OS, games, tools, sites. */
+const RubyApps = {
+  esc(s){ return String(s||"").replace(/[<>&"]/g,""); },
+  slug(s){ return (String(s||"app").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)) || "app"; },
+  hue(s){ let x=7; for(const c of String(s||"ruby")) x=(x*31+c.charCodeAt(0))>>>0; return x%360; },
+
+  /* ---- A full desktop OS in one page: clickable icons, draggable windows, taskbar, start menu ---- */
+  desktopOS(name){
+    const title = this.esc(name || "Ruby Windows");
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title><style>
+*{box-sizing:border-box;margin:0;font-family:Segoe UI,Arial,sans-serif;user-select:none}
+body{height:100vh;overflow:hidden;background:linear-gradient(135deg,#0b3d91,#7b2ff7 55%,#f107a3)}
+#desktop{position:absolute;inset:0 0 48px 0;padding:18px;display:flex;flex-direction:column;flex-wrap:wrap;gap:14px;align-content:flex-start}
+.icon{width:96px;padding:10px 4px 8px;text-align:center;color:#fff;border-radius:10px;cursor:pointer;text-shadow:0 1px 3px #0009}
+.icon:hover{background:#ffffff2b}.icon .g{font-size:38px;display:block}.icon span{font-size:12.5px}
+#taskbar{position:absolute;left:0;right:0;bottom:0;height:48px;background:#10101cd9;backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:0 10px;color:#fff;z-index:999}
+#startBtn{font-size:20px;background:#ffffff1f;border:0;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer}
+#startBtn:hover{background:#ffffff38}
+.taskApp{background:#ffffff14;border:1px solid #ffffff2e;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+#clock{margin-left:auto;font-size:13.5px;text-align:right;line-height:1.15}
+#startMenu{position:absolute;left:10px;bottom:58px;width:280px;background:#16162add;border:1px solid #ffffff2b;border-radius:14px;color:#fff;padding:12px;display:none;z-index:1000;backdrop-filter:blur(10px)}
+#startMenu.open{display:block}
+#startMenu h3{margin:4px 6px 10px;font-size:15px}
+#startMenu button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;color:#fff;text-align:left;padding:9px;border-radius:9px;cursor:pointer;font-size:14px}
+#startMenu button:hover{background:#ffffff22}
+.win{position:absolute;width:520px;max-width:94vw;height:380px;max-height:78vh;background:#fdfdff;border-radius:12px;box-shadow:0 18px 50px #000a;display:flex;flex-direction:column;overflow:hidden}
+.win.hidden{display:none}
+.titlebar{height:40px;background:linear-gradient(90deg,#283593,#7b2ff7);color:#fff;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;cursor:move;font-size:14px;font-weight:600}
+.titlebar .sp{flex:1}
+.tbtn{width:30px;height:26px;border:0;border-radius:6px;background:#ffffff2a;color:#fff;cursor:pointer;font-size:13px}
+.tbtn:hover{background:#ffffff4d}.tbtn.close:hover{background:#e81123}
+.body{flex:1;overflow:auto;padding:14px;color:#1c1c28;font-size:14.5px;line-height:1.55}
+.body textarea{width:100%;height:100%;border:0;outline:none;resize:none;font-size:15px;font-family:inherit}
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.calc button{padding:13px 0;font-size:17px;border:1px solid #ddd;border-radius:9px;background:#f4f4fa;cursor:pointer}
+.calc button:hover{background:#e6e6ff}
+#calcOut{grid-column:1/-1;background:#14142a;color:#fff;border-radius:9px;padding:12px;font-size:24px;text-align:right;min-height:56px}
+input[type=text],input[type=color]{padding:8px;border:1px solid #ccc;border-radius:8px}
+.body button.act{background:#283593;color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+.tile{display:inline-block;width:104px;height:76px;border-radius:10px;margin:5px;cursor:pointer}
+@media(max-width:640px){.win{width:94vw;height:64vh}}
+</style></head><body>
+<div id="desktop"></div>
+<div id="startMenu"><h3>${title}</h3><div id="smApps"></div><hr style="border-color:#ffffff2b;margin:8px 0"><button onclick="alert('Thanks for using ${title}!')">⏻ Shut down (not really)</button></div>
+<div id="taskbar"><button id="startBtn" title="Start">🪟</button><div id="taskApps" style="display:flex;gap:8px"></div><div id="clock"></div></div>
+<script>
+const APPS=[
+ {id:'welcome',icon:'👋',name:'Welcome',html:'<h2>Welcome to ${title}!</h2><p>This is a whole desktop that lives in one web page.</p><ul><li><b>Double-click</b> a desktop icon to open its app</li><li><b>Drag</b> any window by its coloured title bar</li><li>Use the <b>—</b> button to minimise, <b>✕</b> to close</li><li>Open apps appear in the taskbar — click to bring them back</li><li>The <b>Start menu</b> (bottom-left) lists every app</li></ul>'},
+ {id:'notes',icon:'📝',name:'Notepad',html:'<textarea id="np" placeholder="Type your notes here… they save automatically."></textarea>',init(){const t=document.getElementById('np');t.value=localStorage.getItem('os-notes')||'';t.oninput=()=>localStorage.setItem('os-notes',t.value);}},
+ {id:'calc',icon:'🧮',name:'Calculator',html:'<div class="calc"><div id="calcOut">0</div></div>',init(){const out=document.getElementById('calcOut');const grid=out.parentElement;let cur='0',prev=null,op=null;const keys=['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+','C'];keys.forEach(k=>{const b=document.createElement('button');b.textContent=k;b.onclick=()=>{if(/\\d|\\./.test(k)){cur=cur==='0'&&k!=='.'?k:cur+k;}else if(k==='C'){cur='0';prev=null;op=null;}else if(k==='='){if(prev!==null&&op){const a=parseFloat(prev),c=parseFloat(cur);cur=String(op==='+'?a+c:op==='−'?a-c:op==='×'?a*c:c!==0?a/c:'Error');prev=null;op=null;}}else{prev=cur;op=k;cur='0';}out.textContent=op?prev+' '+op+' '+cur:cur;};grid.appendChild(b);});}},
+ {id:'photos',icon:'🖼️',name:'Photos',html:'<p>Your gallery — click a tile to see it big.</p><div id="gal"></div><div id="big" style="margin-top:10px"></div>',init(){const g=document.getElementById('gal');const cols=['#e0112b','#283593','#00897b','#f9a825','#6a1b9a','#00838f','#4e342e','#ad1457'];cols.forEach((c,i)=>{const d=document.createElement('div');d.className='tile';d.style.background='linear-gradient(135deg,'+c+',#111)';d.onclick=()=>{document.getElementById('big').innerHTML='<div style="height:150px;border-radius:12px;background:linear-gradient(135deg,'+c+',#111)"></div><p>Photo '+(i+1)+'</p>';};g.appendChild(d);});}},
+ {id:'settings',icon:'⚙️',name:'Settings',html:'<h3>Personalise</h3><p>Desktop colour: <input type="color" id="bgc" value="#7b2ff7"></p><p style="margin-top:10px">Your name: <input type="text" id="uname" placeholder="Type your name"></p><p id="hi" style="margin-top:10px"></p>',init(){document.getElementById('bgc').oninput=e=>{document.body.style.background='linear-gradient(135deg,#0b3d91,'+e.target.value+')';};document.getElementById('uname').oninput=e=>{document.getElementById('hi').textContent=e.target.value?('Hello, '+e.target.value+'! 👋'):'';};}},
+ {id:'browser',icon:'🌐',name:'Web Browser',html:'<p><input type="text" id="addr" value="https://example.org" style="width:75%"> <button class="act" id="go">Go</button></p><p style="margin-top:10px;color:#555">This pretend browser shows the address you type. (Real browsing needs a real tab — safety rules stop pages loading inside other pages.)</p><div id="fakePage" style="margin-top:12px;border:1px dashed #aaa;border-radius:10px;padding:16px">📄 example.org — a sample page</div>',init(){document.getElementById('go').onclick=()=>{const a=document.getElementById('addr').value;document.getElementById('fakePage').textContent='📄 You asked for: '+a;};}},
+];
+let z=10; const open=new Map();
+const desk=document.getElementById('desktop'), taskApps=document.getElementById('taskApps'), sm=document.getElementById('smApps');
+function makeWindow(app){
+ const w=document.createElement('div'); w.className='win'; w.style.left=(40+open.size*36)+'px'; w.style.top=(30+open.size*30)+'px'; w.style.zIndex=++z;
+ w.innerHTML='<div class="titlebar"><span>'+app.icon+' '+app.name+'</span><span class="sp"></span><button class="tbtn min">—</button><button class="tbtn close">✕</button></div><div class="body">'+app.html+'</div>';
+ document.body.appendChild(w);
+ const bar=w.querySelector('.titlebar');
+ bar.addEventListener('pointerdown',e=>{ if(e.target.classList.contains('tbtn'))return; w.style.zIndex=++z; const dx=e.clientX-w.offsetLeft, dy=e.clientY-w.offsetTop; const mv=ev=>{ w.style.left=Math.max(0,Math.min(innerWidth-80,ev.clientX-dx))+'px'; w.style.top=Math.max(0,Math.min(innerHeight-90,ev.clientY-dy))+'px'; }; const up=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); }; addEventListener('pointermove',mv); addEventListener('pointerup',up); });
+ w.addEventListener('pointerdown',()=>{ w.style.zIndex=++z; });
+ w.querySelector('.close').onclick=()=>{ w.remove(); open.delete(app.id); renderTask(); };
+ w.querySelector('.min').onclick=()=>{ w.classList.add('hidden'); };
+ open.set(app.id,w); if(app.init) app.init(w);
+ return w;
+}
+function renderTask(){ taskApps.innerHTML=''; open.forEach((w,id)=>{ const app=APPS.find(a=>a.id===id); const b=document.createElement('button'); b.className='taskApp'; b.textContent=app.icon+' '+app.name; b.onclick=()=>{ w.classList.remove('hidden'); w.style.zIndex=++z; }; taskApps.appendChild(b); }); }
+function launch(id){ const app=APPS.find(a=>a.id===id); let w=open.get(id); if(!w){ w=makeWindow(app); } w.classList.remove('hidden'); w.style.zIndex=++z; renderTask(); document.getElementById('startMenu').classList.remove('open'); }
+APPS.forEach(app=>{ const d=document.createElement('div'); d.className='icon'; d.innerHTML='<span class="g">'+app.icon+'</span><span>'+app.name+'</span>'; d.ondblclick=()=>launch(app.id); d.onclick=()=>{ if(matchMedia('(pointer:coarse)').matches) launch(app.id); }; desk.appendChild(d);
+ const s=document.createElement('button'); s.innerHTML=app.icon+' '+app.name; s.onclick=()=>launch(app.id); sm.appendChild(s); });
+document.getElementById('startBtn').onclick=()=>document.getElementById('startMenu').classList.toggle('open');
+function tick(){ const d=new Date(); document.getElementById('clock').innerHTML=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'<br>'+d.toLocaleDateString(); }
+tick(); setInterval(tick,1000);
+launch('welcome');
+<\/script></body></html>`;
+  },
+
+  /* ---- A complete canvas game: move, collect, dodge, score, lives, restart ---- */
+  game(topic){
+    const name = this.esc(topic || "Ruby Runner"); const h = this.hue(topic);
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>
+<style>body{margin:0;background:#0d0d17;color:#fff;font-family:Arial;text-align:center}canvas{background:hsl(${h},45%,12%);border:2px solid hsl(${h},80%,55%);border-radius:12px;max-width:94vw;touch-action:none}button{background:hsl(${h},85%,45%);color:#fff;border:0;border-radius:9px;padding:10px 18px;font-size:15px;cursor:pointer}.hud{font-size:17px;margin:10px}</style></head><body>
+<h1>🎮 ${name}</h1><div class="hud">Score: <b id="score">0</b> · Lives: <b id="lives">3</b> · Best: <b id="best">0</b></div>
+<canvas id="cv" width="640" height="420"></canvas>
+<p>Move with ⬅️ ⬆️ ⬇️ ➡️ arrow keys, WASD, or drag on touch screens. Collect the gems 💎, dodge the meteors ☄️. Every 100 points the meteors get faster!</p>
+<p><button id="restart">↻ Restart game</button> <button id="pause">⏸ Pause</button>
+<label>Difficulty <select id="diff"><option value="0.7">Easy</option><option value="1" selected>Normal</option><option value="1.5">Hard</option></select></label></p>
+<div id="touch" style="margin:8px"><button data-k="arrowup">⬆️</button><br><button data-k="arrowleft">⬅️</button> <button data-k="arrowdown">⬇️</button> <button data-k="arrowright">➡️</button></div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let px=300,py=340,score=0,lives=3,run=true,paused=false,t=0,level=1;
+const stars=Array.from({length:60},()=>({x:Math.random()*640,y:Math.random()*420,s:Math.random()*1.8+0.4}));
+const pops=[];
+document.querySelectorAll('#touch button').forEach(b=>{ const k=b.dataset.k; b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;}); b.addEventListener('pointerup',()=>keys[k]=false); b.addEventListener('pointerleave',()=>keys[k]=false); });
+document.getElementById('pause').onclick=e=>{ paused=!paused; e.target.textContent=paused?'▶️ Resume':'⏸ Pause'; };
+let gems=[],rocks=[];
+function spawnGem(){gems.push({x:20+Math.random()*600,y:20+Math.random()*380});}
+function spawnRock(){rocks.push({x:Math.random()*640,y:-20,v:2+Math.random()*2.5});}
+for(let i=0;i<5;i++)spawnGem();
+const keys={}; addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; if(e.key.startsWith('Arrow'))e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let touch=null; cv.addEventListener('pointerdown',e=>touch=e); cv.addEventListener('pointermove',e=>{ if(touch){ const r=cv.getBoundingClientRect(); px=(e.clientX-r.left)*(cv.width/r.width)-16; py=(e.clientY-r.top)*(cv.height/r.height)-16; }});
+cv.addEventListener('pointerup',()=>touch=null);
+function reset(){px=300;py=340;score=0;lives=3;run=true;gems=[];rocks=[];for(let i=0;i<5;i++)spawnGem();document.getElementById('score').textContent=0;document.getElementById('lives').textContent=3;}
+document.getElementById('restart').onclick=reset;
+function loop(){
+ requestAnimationFrame(loop); t++;
+ if(run&&!paused){
+  const sp=4.2;
+  if(keys['arrowleft']||keys['a'])px-=sp; if(keys['arrowright']||keys['d'])px+=sp;
+  if(keys['arrowup']||keys['w'])py-=sp; if(keys['arrowdown']||keys['s'])py+=sp;
+  px=Math.max(0,Math.min(608,px)); py=Math.max(0,Math.min(388,py));
+  if(t%Math.max(26,70-level*5)===0)spawnRock();
+  const df=parseFloat(document.getElementById('diff').value); rocks.forEach(r=>r.y+=r.v*df*(1+(level-1)*0.18)); rocks=rocks.filter(r=>r.y<450);
+  gems=gems.filter(g=>{ const hit=Math.abs(g.x-px-6)<30&&Math.abs(g.y-py-6)<30; if(hit){score+=10;document.getElementById('score').textContent=score;pops.push({x:g.x,y:g.y,txt:'+10',a:1});const nl=Math.floor(score/100)+1; if(nl>level){level=nl;pops.push({x:280,y:190,txt:'LEVEL '+level+'!',a:1});} spawnGem();} return !hit; });
+  rocks=rocks.filter(r=>{ const hit=Math.abs(r.x-px-16)<26&&Math.abs(r.y-py-16)<26; if(hit){lives--;document.getElementById('lives').textContent=lives; if(lives<=0){run=false; const best=Math.max(score,+localStorage.getItem('game-best')||0); localStorage.setItem('game-best',best); document.getElementById('best').textContent=best;}} return !hit; });
+ }
+ document.getElementById('best').textContent=localStorage.getItem('game-best')||0;
+ ctx.clearRect(0,0,640,420); ctx.fillStyle='#ffffff88'; stars.forEach(st=>{ ctx.fillRect(st.x,(st.y+t*0.3)%420,st.s,st.s); });
+ ctx.font='bold 15px Arial'; pops.forEach(pp=>{ ctx.globalAlpha=Math.max(0,pp.a); ctx.fillStyle='#ffd23d'; ctx.fillText(pp.txt,pp.x,pp.y); pp.y-=0.7; pp.a-=0.016; }); ctx.globalAlpha=1; for(let i=pops.length-1;i>=0;i--) if(pops[i].a<=0) pops.splice(i,1);
+ if(paused){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,640,420); ctx.fillStyle='#fff'; ctx.font='bold 30px Arial'; ctx.textAlign='center'; ctx.fillText('⏸ Paused',320,215); ctx.textAlign='left'; }
+ ctx.font='30px serif'; gems.forEach(g=>ctx.fillText('💎',g.x,g.y+24)); rocks.forEach(r=>ctx.fillText('☄️',r.x,r.y+24));
+ ctx.fillStyle='hsl(${h},85%,55%)'; ctx.beginPath(); ctx.roundRect(px,py,32,32,9); ctx.fill();
+ ctx.fillStyle='#fff'; ctx.font='bold 15px Arial'; ctx.fillText('◆',px+10,py+21);
+ if(!run){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,640,420); ctx.fillStyle='#fff'; ctx.font='bold 34px Arial'; ctx.textAlign='center'; ctx.fillText('Game over! Score: '+score,320,200); ctx.font='17px Arial'; ctx.fillText('Press Restart to play again',320,232); ctx.textAlign='left'; }
+}
+loop();
+<\/script></body></html>`;
+  },
+
+  /* ---- Standalone working calculator app ---- */
+  calculator(){
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Calculator</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#14141f;font-family:Arial}.box{background:#1e1e2e;padding:18px;border-radius:18px;width:300px;box-shadow:0 16px 40px #000a}#out{background:#0c0c16;color:#fff;font-size:32px;text-align:right;padding:16px;border-radius:12px;min-height:44px;word-break:break-all}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}button{padding:15px 0;font-size:18px;border:0;border-radius:11px;background:#2c2c40;color:#fff;cursor:pointer}button:hover{background:#3a3a56}.op{background:#7b2ff7}.eq{background:#e0112b;grid-column:span 2}</style></head><body>
+<div class="box"><div id="out">0</div><div class="grid" id="grid"></div></div>
+<script>
+const out=document.getElementById('out'); let cur='0',prev=null,op=null;
+function show(){ out.textContent = op? (prev+' '+op+' '+cur) : cur; }
+function press(k){
+ if(/\\d/.test(k)||k==='.'){ cur = (cur==='0'&&k!=='.') ? k : (k==='.'&&cur.includes('.')? cur : cur+k); }
+ else if(k==='C'){ cur='0'; prev=null; op=null; }
+ else if(k==='⌫'){ cur = cur.length>1? cur.slice(0,-1) : '0'; }
+ else if(k==='='){ if(prev!==null&&op){ const a=parseFloat(prev),b=parseFloat(cur); let r = op==='+'?a+b : op==='−'?a-b : op==='×'?a*b : (b!==0? a/b : NaN); cur = isNaN(r)? 'Error' : String(Math.round(r*1e10)/1e10); prev=null; op=null; } }
+ else { if(prev!==null&&op){ press('='); } prev=cur; op=k; cur='0'; }
+ show();
+}
+['C','⌫','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].forEach(k=>{ const b=document.createElement('button'); b.textContent=k; if('÷×−+'.includes(k))b.className='op'; if(k==='=')b.className='eq'; if(k==='%'){ b.onclick=()=>{ cur=String(parseFloat(cur)/100); show(); }; } else b.onclick=()=>press(k); document.getElementById('grid').appendChild(b); });
+addEventListener('keydown',e=>{ const map={'/':'÷','*':'×','-':'−','Enter':'=','Escape':'C','Backspace':'⌫'}; const k=map[e.key]||e.key; if(/\\d|\\.|\\+/.test(k)||'÷×−=C⌫'.includes(k)) press(k); });
+show();
+<\/script></body></html>`;
+  },
+
+  /* ---- To-do app with saving ---- */
+  todo(){
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My To-Do List</title>
+<style>body{margin:0;min-height:100vh;background:#101018;color:#fff;font-family:Arial;display:grid;place-items:start center;padding:28px 14px}.app{width:min(480px,94vw)}h1{color:#ff8a9a}input{width:70%;padding:12px;border-radius:10px;border:1px solid #444;background:#1b1b28;color:#fff;font-size:15px}button{padding:12px 16px;border:0;border-radius:10px;background:#e0112b;color:#fff;cursor:pointer;font-size:15px}li{list-style:none;background:#1b1b28;margin:8px 0;padding:12px;border-radius:10px;display:flex;gap:10px;align-items:center}li.done span{text-decoration:line-through;color:#999}li .sp{flex:1}li button{background:#33334a;padding:7px 11px}ul{padding:0}.count{color:#bbb}</style></head><body>
+<div class="app"><h1>✅ My To-Do List</h1>
+<p><input id="inp" placeholder="What needs doing?"> <button id="add">Add</button></p>
+<p class="count" id="count"></p><ul id="list"></ul>
+<button id="clearDone" style="background:#33334a">Clear finished</button></div>
+<script>
+let items=JSON.parse(localStorage.getItem('todo-items')||'[]');
+const list=document.getElementById('list'), inp=document.getElementById('inp');
+function save(){ localStorage.setItem('todo-items',JSON.stringify(items)); }
+function render(){ list.innerHTML=''; items.forEach((it,i)=>{ const li=document.createElement('li'); if(it.done)li.className='done';
+ const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=it.done; cb.onchange=()=>{ it.done=cb.checked; save(); render(); };
+ const sp=document.createElement('span'); sp.className='sp'; sp.textContent=it.text;
+ const del=document.createElement('button'); del.textContent='🗑'; del.onclick=()=>{ items.splice(i,1); save(); render(); };
+ li.append(cb,sp,del); list.appendChild(li); });
+ document.getElementById('count').textContent = items.length? (items.filter(i=>i.done).length+' of '+items.length+' done') : 'Nothing here yet — add your first task above.'; }
+function add(){ const v=inp.value.trim(); if(!v)return; items.push({text:v,done:false}); inp.value=''; save(); render(); }
+document.getElementById('add').onclick=add; inp.addEventListener('keydown',e=>{ if(e.key==='Enter')add(); });
+document.getElementById('clearDone').onclick=()=>{ items=items.filter(i=>!i.done); save(); render(); };
+render();
+<\/script></body></html>`;
+  },
+
+  /* ---- Paint app ---- */
+  paint(){
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paint</title>
+<style>body{margin:0;background:#14141f;color:#fff;font-family:Arial;text-align:center;padding:14px}canvas{background:#fff;border-radius:12px;max-width:94vw;touch-action:none}input,button{margin:4px;padding:9px 13px;border-radius:9px;border:0;font-size:14px}button{background:#e0112b;color:#fff;cursor:pointer}</style></head><body>
+<h1>🎨 Paint</h1>
+<p>Colour <input type="color" id="col" value="#e0112b"> Brush size <input type="range" id="size" min="1" max="40" value="6">
+<button id="erase">Eraser</button><button id="clear">Clear</button><button id="save">💾 Save picture</button></p>
+<canvas id="cv" width="760" height="480"></canvas>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); ctx.lineCap='round';
+let down=false,lx=0,ly=0,erasing=false;
+function pos(e){ const r=cv.getBoundingClientRect(); return [ (e.clientX-r.left)*(cv.width/r.width), (e.clientY-r.top)*(cv.height/r.height) ]; }
+cv.addEventListener('pointerdown',e=>{ down=true; [lx,ly]=pos(e); });
+cv.addEventListener('pointermove',e=>{ if(!down)return; const [x,y]=pos(e); ctx.strokeStyle=erasing?'#fff':document.getElementById('col').value; ctx.lineWidth=document.getElementById('size').value; ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x,y); ctx.stroke(); lx=x; ly=y; });
+addEventListener('pointerup',()=>down=false);
+document.getElementById('erase').onclick=e=>{ erasing=!erasing; e.target.textContent=erasing?'✏️ Draw':'Eraser'; };
+document.getElementById('clear').onclick=()=>{ ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); };
+document.getElementById('save').onclick=()=>{ const a=document.createElement('a'); a.download='my-painting.png'; a.href=cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove(); };
+<\/script></body></html>`;
+  },
+
+  /* ---- Chat app with a built-in buddy ---- */
+  chatApp(){
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat Buddy</title>
+<style>body{margin:0;min-height:100vh;background:#0f0f16;color:#fff;font-family:Arial;display:grid;place-items:center}.app{width:min(460px,94vw);height:88vh;display:flex;flex-direction:column;background:#171724;border-radius:16px;overflow:hidden}#log{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:9px}.m{max-width:80%;padding:10px 13px;border-radius:14px;line-height:1.45;font-size:14.5px}.me{align-self:flex-end;background:#e0112b}.them{align-self:flex-start;background:#262638}form{display:flex;gap:8px;padding:11px;background:#10101a}input{flex:1;padding:11px;border-radius:10px;border:1px solid #333;background:#1d1d2c;color:#fff}button{background:#e0112b;color:#fff;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}h3{margin:0;padding:13px;background:#10101a}</style></head><body>
+<div class="app"><h3>💬 Chat Buddy</h3><div id="log"></div><form id="f"><input id="inp" placeholder="Say something…" autocomplete="off"><button>Send</button></form></div>
+<script>
+const log=document.getElementById('log'), inp=document.getElementById('inp');
+function add(text,who){ const d=document.createElement('div'); d.className='m '+who; d.textContent=text; log.appendChild(d); log.scrollTop=1e9; }
+const replies=[ [/hello|hi|hey/i,'Hey! Great to see you. What are we doing today?'], [/how are you/i,'Running at full sparkle, thanks for asking! How about you?'], [/joke/i,'Why did the web developer go broke? He used up all his cache. 😄'], [/name/i,'I am Buddy, the tiny chat friend who lives in this page.'], [/bye/i,'Bye for now! This page will remember nothing, so every visit is a fresh start.'], [/thank/i,'Any time! That is literally what I am here for.'] ];
+function answer(t){ for(const [re,s] of replies) if(re.test(t)) return s; const fallbacks=['Interesting — tell me more about that.','Oh? Go on, I am listening.','That is a new one for me. What else is on your mind?','Noted! (Well, pretend-noted. I forget everything when the tab closes.)']; return fallbacks[Math.floor(Math.random()*fallbacks.length)]; }
+add('Hi, I am Buddy! Type something and I will chat back. Try asking for a joke.','them');
+document.getElementById('f').onsubmit=e=>{ e.preventDefault(); const v=inp.value.trim(); if(!v)return; add(v,'me'); inp.value=''; setTimeout(()=>add(answer(v),'them'),450); };
+<\/script></body></html>`;
+  },
+
+  /* ---- A real topic website: hero, features, gallery, form ---- */
+  landing(topic){
+    const t = this.esc(topic || "My Website"); const h = this.hue(topic);
+    const cards = ["Why people love it","How it works","Get started today"].map((c,i)=>`<div class="card"><div class="ic">${["💡","⚙️","🚀"][i]}</div><h3>${c}</h3><p>Everything about ${t} is explained here in plain words, with the details that actually matter and none of the fluff.</p></div>`).join("");
+    const tiles = Array.from({length:6},(_,i)=>`<div class="tile" style="background:linear-gradient(135deg,hsl(${(h+i*36)%360},75%,45%),hsl(${(h+i*36+60)%360},80%,30%))"><span>${t.split(" ").map(w=>w[0]||"").join("").slice(0,2).toUpperCase()} ${i+1}</span></div>`).join("");
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t}</title>
+<style>*{box-sizing:border-box}body{margin:0;font-family:Arial;color:#191924}header{position:sticky;top:0;background:#12121df0;color:#fff;display:flex;gap:18px;align-items:center;padding:13px 22px}header b{color:hsl(${h},90%,65%);font-size:19px}header a{color:#ddd;text-decoration:none;font-size:14.5px}.hero{padding:74px 22px;text-align:center;color:#fff;background:linear-gradient(135deg,hsl(${h},80%,38%),hsl(${(h+70)%360},85%,30%))}.hero h1{font-size:44px;margin:0 0 12px}.hero p{font-size:18px;opacity:.92;max-width:640px;margin:0 auto 22px}.btn{background:#fff;color:#191924;border:0;border-radius:11px;padding:13px 24px;font-size:16px;cursor:pointer;font-weight:bold}section{max-width:980px;margin:0 auto;padding:44px 22px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.card{background:#f5f5fa;border-radius:14px;padding:20px}.card .ic{font-size:30px}.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}.tile{height:110px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:bold;font-size:19px;text-shadow:0 1px 4px #0008}form{display:grid;gap:10px;max-width:440px}input,textarea{padding:12px;border:1px solid #bbb;border-radius:10px;font-size:15px;font-family:inherit}form button{background:hsl(${h},85%,45%);color:#fff;border:0;border-radius:10px;padding:13px;font-size:16px;cursor:pointer}footer{background:#12121d;color:#aaa;text-align:center;padding:22px;font-size:13.5px}.count{background:#f5f5fa;border-radius:14px;padding:20px;text-align:center}.count b{font-size:34px;color:hsl(${h},85%,45%)}</style></head><body>
+<header><b>${t}</b><a href="#about">About</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></header>
+<div class="hero"><h1>Welcome to ${t}</h1><p>The home of ${t} on the web — what it is, why it matters, and how to be part of it.</p><button class="btn" onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'})">Explore ↓</button></div>
+<section id="about"><h2>About ${t}</h2><div class="cards">${cards}</div></section>
+<section><div class="count"><p>People who clicked the big red button:</p><b id="n">0</b><br><br><button class="btn" id="cntBtn" style="background:hsl(${h},85%,45%);color:#fff">Click me!</button></div></section>
+<section id="gallery"><h2>Gallery</h2><div class="tiles">${tiles}</div></section>
+<section id="contact"><h2>Contact</h2><form onsubmit="event.preventDefault();document.getElementById('ok').textContent='✅ Thanks! Your message about ${t} was received (demo form — nothing was sent anywhere).';this.reset()"><input required placeholder="Your name"><input type="email" required placeholder="Your email"><textarea rows="4" placeholder="Your message"></textarea><button>Send message</button><p id="ok"></p></form></section>
+<footer>Made with Ruby AI · ${t} · <span id="yr"></span></footer>
+<script>
+document.getElementById("yr").textContent=new Date().getFullYear();
+let clicks=0; document.getElementById("cntBtn").onclick=()=>{ document.getElementById("n").textContent=++clicks; };
+<\/script></body></html>`;
+  },
+
+  /* ---- Fallback: a decent interactive starter page for any other topic ---- */
+  starter(topic){
+    const t = this.esc(topic || "My Page"); const h = this.hue(topic);
+    return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t}</title>
+<style>body{margin:0;font-family:Arial;background:linear-gradient(135deg,hsl(${h},70%,16%),hsl(${(h+60)%360},70%,26%));color:#fff;min-height:100vh;display:grid;place-items:center;padding:20px}.box{max-width:640px;background:#ffffff12;border:1px solid #ffffff30;border-radius:18px;padding:30px;text-align:center}h1{margin-top:0}button{background:hsl(${h},90%,55%);color:#fff;border:0;border-radius:11px;padding:12px 22px;font-size:16px;cursor:pointer}input{padding:11px;border-radius:10px;border:0;width:70%;font-size:15px}li{text-align:left;margin:6px 0}</style></head><body>
+<div class="box"><h1>${t}</h1><p>This page was made by Ruby AI. It is a real, working starting point — the button counts, the list remembers, and everything below actually does something.</p>
+<p><button id="b">Clicked <b id="n">0</b> times</button></p>
+<h3>📝 Quick notes</h3><p><input id="inp" placeholder="Type a note, press Enter"> </p><ul id="list"></ul>
+<p style="opacity:.8;font-size:13.5px">Edit this file to make it yours — change the title, colours and words.</p></div>
+<script>
+let n=0; document.getElementById('b').onclick=()=>{ document.getElementById('n').textContent=++n; };
+const inp=document.getElementById('inp'), list=document.getElementById('list');
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&inp.value.trim()){ const li=document.createElement('li'); li.textContent=inp.value; list.appendChild(li); inp.value=''; } });
+<\/script></body></html>`;
+  }
+};
+
+/* ===== RubySchool: the lessons. Coding lessons + how to be a good assistant. ===== */
+const RubySchool = {
+  lessons: {
+    html: "📘 Lesson — HTML is the skeleton of every web page. A page is built from tags: <h1> is a big heading, <p> is a paragraph, <button> is a clickable button, <img> shows a picture, and <a href=\"...\"> makes a link. Every page Ruby builds starts with <!DOCTYPE html>, a <head> (title + styles) and a <body> (what you see). Rule one of Ruby's school: a real page is COMPLETE — it always has the full structure, never just a fragment, unless the person asked for a fragment.",
+    css: "🎨 Lesson — CSS is how a page looks: colours, sizes, spacing, layout. Rules live in a <style> block or a style attribute: color changes text colour, background paints behind things, border-radius rounds corners, and display:flex lines things up in rows. Ruby's rule: if she builds an app, she styles it properly — readable text, real spacing, buttons that look like buttons.",
+    javascript: "⚙️ Lesson — JavaScript is what makes a page DO things. It finds elements with document.getElementById, listens for clicks with onclick or addEventListener, and changes the page in response. Ruby's rules: every button she ships must actually work; state (scores, lists, notes) is kept in variables and saved to localStorage when it should survive a refresh; and she tests the logic in her head step by step before handing it over.",
+    decisions: "🧭 How Ruby decides what to build: (1) Listen for the THING — a desktop, a game, a calculator, a website. (2) Pick the closest complete template from her school library instead of starting from a blank page. (3) Default file type is HTML, because HTML runs anywhere — unless the person names another type (ZIP, JSON, a Python file…), then she makes exactly that. (4) Fill the template with the person's topic and words. (5) Check: does every button work? Is anything a placeholder? If yes, fix it before delivering. Big ask = big file. A desktop with clickable icons takes hundreds of lines, and that's correct.",
+    assistant: "💎 How Ruby was taught to be a good assistant: (1) Be honest — never fake an answer; if she doesn't know, she says so and offers to learn it. (2) Actually do the thing — a finished file beats a description of a file. (3) No placeholders and no fake buttons — if it looks clickable, it must work. (4) Remember what matters — names, facts, preferences — and use them naturally. (5) When something she made is wrong, she says so plainly, fixes it, and doesn't make excuses. (6) Ask ONE clear question when a request is genuinely ambiguous, instead of guessing wrong. (7) Keep answers as short as the job allows, but never cut the substance. (8) The person's data stays on their device — privacy is part of being trustworthy.",
+  },
+  topic(low){
+    if (/css|style|colour|color/.test(low)) return this.lessons.css;
+    if (/javascript|\bjs\b|script/.test(low)) return this.lessons.javascript;
+    if (/decide|decision|how do you (build|code|make)/.test(low)) return this.lessons.decisions;
+    if (/assistant|behave|behavior|good ai|taught to be/.test(low)) return this.lessons.assistant;
+    return this.lessons.html;
+  }
+};
+
+/* ===== v1.11 routing: file-making fixed (HTML default) + the school library does the building ===== */
+(function(){
+  const origThink = RubyBrain.think.bind(RubyBrain);
+  function fileReply(fname, kind){
+    return `✅ Done — I built that as a real file for you: **${fname}** (see the card below).\n\nTap **Open & use it here** to try it right away, or **Download** to keep it. It's a complete ${kind} — everything in it works, no placeholders.`;
+  }
+  RubyBrain.think = function(text, lowOrig, plan){
+    const t = String(text||""); const low = " "+(lowOrig||t.toLowerCase()).replace(/\s+/g," ")+" ";
+    // --- Lessons: Ruby can teach what she was taught ---
+    if (/(teach me|lesson|how do i (learn|code|make)|how to code|learn (html|css|javascript|js|coding))/.test(low) && !/make|build me|create me/.test(low))
+      return RubySchool.topic(low);
+    if (/how (were you taught|do you decide|are you a good assistant)/.test(low)) return /assistant|good/.test(low) ? RubySchool.lessons.assistant : RubySchool.lessons.decisions;
+    // --- Corrections: a good assistant owns mistakes and learns the fix ---
+    const corr = t.match(/^(?:no,?\s+)?(?:that'?s (?:wrong|not right)|wrong[.!]?|incorrect[.!]?)\s*(?:it'?s|the answer is)?\s*(.*)$/i);
+    if (corr && !/make|build/.test(low))
+      return `You're right to call that out — sorry about that. I'm not going to pretend I had it right.\n\nIf you tell me the correct version like this: **teach: <topic> is <the right answer>** — I'll remember it properly and use it from now on.`;
+    // --- Building things: the school library handles it, completely ---
+    const wantsBuild = /\b(make|create|build|generate|code|write)\b/.test(low);
+    const fileTypeMatch = low.match(/\b(zip|json|xml|csv|text|txt|markdown|md|python|py|javascript|js|css)\s+file\b/) || low.match(/\b(html)\s+file\b/);
+    const isCodeSnippet = /(python|javascript) code|code (for|to)|function|script to/.test(low) && !/(app|page|website|game|desktop|file)/.test(low);
+    if (wantsBuild && !isCodeSnippet && !/(image|picture|artwork|drawing|music|song|sound|note|story|poem)/.test(low)){
+      // explicit file type wins; HTML is the default
+      if (fileTypeMatch){
+        const kind = fileTypeMatch[1];
+        if (kind==="zip"){ const files=[{name:"index.html",content:RubyApps.starter("My Page")},{name:"notes.txt",content:"Made by Ruby AI.\nThis ZIP was created because you asked for a ZIP — HTML is my default, but the type you name is the type you get."},{name:"data.json",content:JSON.stringify({madeBy:"Ruby AI",type:"zip",files:3},null,2)}]; RubyFiles.create("my-files.zip","",files); return fileReply("my-files.zip","ZIP archive with real files inside"); }
+        if (kind==="json"||kind==="xml"||kind==="csv"){ const topic=(t.replace(/.*?(?:about|for|of)\s+/i,"").trim()||"Ruby Data"); const c = kind==="json"? JSON.stringify({topic, madeBy:"Ruby AI", items:[{name:topic+" — item 1", value:1},{name:topic+" — item 2", value:2}]},null,2) : kind==="xml"? `<?xml version="1.0" encoding="UTF-8"?>\n<data topic="${topic.replace(/"/g,"")}"><item id="1">${topic} — item 1</item><item id="2">${topic} — item 2</item></data>` : "name,value\n"+topic+" — item 1,1\n"+topic+" — item 2,2\n"; const fn=RubyApps.slug(topic)+"."+kind; RubyFiles.create(fn, c); return fileReply(fn, kind.toUpperCase()+" file"); }
+        if (kind==="txt"||kind==="text"||kind==="md"||kind==="markdown"){ const fn="my-notes."+(kind==="md"||kind==="markdown"?"md":"txt"); RubyFiles.create(fn, "# My notes\n\nMade by Ruby AI. Write anything here."); return fileReply(fn,"text file"); }
+        // html file asked by name -> fall through to app building below
+      }
+      const aboutM = t.match(/(?:about|for|called|named)\s+([A-Za-z0-9 '&-]{2,40})/i);
+      const topic = aboutM ? aboutM[1].trim() : "";
+      if (/(windows|desktop|operating system|\bos\b)/.test(low) && /(like|style|similar|clone|desktop|windows)/.test(low)){
+        const nm = topic || "My Desktop OS"; const fn = RubyApps.slug(nm)+".html";
+        RubyFiles.create(fn, RubyApps.desktopOS(nm)); return fileReply(fn, "desktop OS — double-click the icons, drag the windows, use the taskbar and Start menu");
+      }
+      if (/\b(game|platformer|arcade)\b/.test(low)){ const nm = topic || (t.match(/(?:make|build|create)(?:\s+an?)?\s+([A-Za-z0-9 '&-]{2,30}?)\s+game/i)||[])[1] || "Ruby Runner"; const fn=RubyApps.slug(nm)+"-game.html"; RubyFiles.create(fn, RubyApps.game(nm)); return fileReply(fn, "playable game — arrow keys / WASD / touch, gems to collect, meteors to dodge, score and lives"); }
+      if (/calculator/.test(low)){ RubyFiles.create("calculator.html", RubyApps.calculator()); return fileReply("calculator.html","working calculator (mouse and keyboard)"); }
+      if (/(to-?do|todo|task list|checklist)/.test(low)){ RubyFiles.create("todo-list.html", RubyApps.todo()); return fileReply("todo-list.html","to-do app that saves your list"); }
+      if (/(paint|drawing app|draw pad|sketch)/.test(low)){ RubyFiles.create("paint.html", RubyApps.paint()); return fileReply("paint.html","paint app with brush, eraser and save-as-picture"); }
+      if (/(chat app|chatbot|chat buddy|messaging app)/.test(low)){ RubyFiles.create("chat-buddy.html", RubyApps.chatApp()); return fileReply("chat-buddy.html","chat app with a built-in buddy who replies"); }
+      if (/(website|web ?page|web ?site|landing page|homepage|site about|page about)/.test(low) || /\bhtml\b/.test(low)){
+        const nm = topic || (t.replace(/\b(make|create|build|generate|me|an?|the|html|file|website|web ?page|web ?site|please)\b/gi,"").trim()) || "My Website";
+        const fn = RubyApps.slug(nm)+".html";
+        RubyFiles.create(fn, /\bhtml\b/.test(low) && !topic && !/(website|page|site)/.test(low) ? RubyApps.starter(nm==="My Website"?"My Page":nm) : RubyApps.landing(nm));
+        return fileReply(fn, "complete web page");
+      }
+      if (/app\b/.test(low)){ const nm = topic || "My App"; const fn=RubyApps.slug(nm)+".html"; RubyFiles.create(fn, RubyApps.landing(nm)); return fileReply(fn,"complete app page"); }
+    }
+    const base = origThink(text, lowOrig, plan);
+    if (/\bhelp\b|what can you do/.test(low)) return base + "\n\n🏫 **Ruby's Coding School (new):** ask me to *make a desktop like Windows*, *make a game*, *make a website about anything*, *make a calculator / to-do list / paint app / chat app* — I now build the COMPLETE thing as a file (HTML by default; say ZIP/JSON/etc. if you want that instead). Ask *teach me HTML* (or CSS / JavaScript) for a lesson, or *how do you decide* to see how I build.";
+    return base;
+  };
+
+})();
+
+</script>
+</body></html>

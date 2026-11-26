@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paint</title>
+<style>body{margin:0;background:#14141f;color:#fff;font-family:Arial;text-align:center;padding:14px}canvas{background:#fff;border-radius:12px;max-width:94vw;touch-action:none}input,button{margin:4px;padding:9px 13px;border-radius:9px;border:0;font-size:14px}button{background:#e0112b;color:#fff;cursor:pointer}</style></head><body>
+<h1>🎨 Paint</h1>
+<p>Colour <input type="color" id="col" value="#e0112b"> Brush size <input type="range" id="size" min="1" max="40" value="6">
+<button id="erase">Eraser</button><button id="clear">Clear</button><button id="save">💾 Save picture</button></p>
+<canvas id="cv" width="760" height="480"></canvas>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); ctx.lineCap='round';
+let down=false,lx=0,ly=0,erasing=false;
+function pos(e){ const r=cv.getBoundingClientRect(); return [ (e.clientX-r.left)*(cv.width/r.width), (e.clientY-r.top)*(cv.height/r.height) ]; }
+cv.addEventListener('pointerdown',e=>{ down=true; [lx,ly]=pos(e); });
+cv.addEventListener('pointermove',e=>{ if(!down)return; const [x,y]=pos(e); ctx.strokeStyle=erasing?'#fff':document.getElementById('col').value; ctx.lineWidth=document.getElementById('size').value; ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x,y); ctx.stroke(); lx=x; ly=y; });
+addEventListener('pointerup',()=>down=false);
+document.getElementById('erase').onclick=e=>{ erasing=!erasing; e.target.textContent=erasing?'✏️ Draw':'Eraser'; };
+document.getElementById('clear').onclick=()=>{ ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); };
+document.getElementById('save').onclick=()=>{ const a=document.createElement('a'); a.download='my-painting.png'; a.href=cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove(); };
+</script></body></html>

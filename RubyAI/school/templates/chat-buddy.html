@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat Buddy</title>
+<style>body{margin:0;min-height:100vh;background:#0f0f16;color:#fff;font-family:Arial;display:grid;place-items:center}.app{width:min(460px,94vw);height:88vh;display:flex;flex-direction:column;background:#171724;border-radius:16px;overflow:hidden}#log{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:9px}.m{max-width:80%;padding:10px 13px;border-radius:14px;line-height:1.45;font-size:14.5px}.me{align-self:flex-end;background:#e0112b}.them{align-self:flex-start;background:#262638}form{display:flex;gap:8px;padding:11px;background:#10101a}input{flex:1;padding:11px;border-radius:10px;border:1px solid #333;background:#1d1d2c;color:#fff}button{background:#e0112b;color:#fff;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}h3{margin:0;padding:13px;background:#10101a}</style></head><body>
+<div class="app"><h3>💬 Chat Buddy</h3><div id="log"></div><form id="f"><input id="inp" placeholder="Say something…" autocomplete="off"><button>Send</button></form></div>
+<script>
+const log=document.getElementById('log'), inp=document.getElementById('inp');
+function add(text,who){ const d=document.createElement('div'); d.className='m '+who; d.textContent=text; log.appendChild(d); log.scrollTop=1e9; }
+const replies=[ [/hello|hi|hey/i,'Hey! Great to see you. What are we doing today?'], [/how are you/i,'Running at full sparkle, thanks for asking! How about you?'], [/joke/i,'Why did the web developer go broke? He used up all his cache. 😄'], [/name/i,'I am Buddy, the tiny chat friend who lives in this page.'], [/bye/i,'Bye for now! This page will remember nothing, so every visit is a fresh start.'], [/thank/i,'Any time! That is literally what I am here for.'] ];
+function answer(t){ for(const [re,s] of replies) if(re.test(t)) return s; const fallbacks=['Interesting — tell me more about that.','Oh? Go on, I am listening.','That is a new one for me. What else is on your mind?','Noted! (Well, pretend-noted. I forget everything when the tab closes.)']; return fallbacks[Math.floor(Math.random()*fallbacks.length)]; }
+add('Hi, I am Buddy! Type something and I will chat back. Try asking for a joke.','them');
+document.getElementById('f').onsubmit=e=>{ e.preventDefault(); const v=inp.value.trim(); if(!v)return; add(v,'me'); inp.value=''; setTimeout(()=>add(answer(v),'them'),450); };
+</script></body></html>

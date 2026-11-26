@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Page</title>
+<style>body{margin:0;font-family:Arial;background:linear-gradient(135deg,hsl(92,70%,16%),hsl(152,70%,26%));color:#fff;min-height:100vh;display:grid;place-items:center;padding:20px}.box{max-width:640px;background:#ffffff12;border:1px solid #ffffff30;border-radius:18px;padding:30px;text-align:center}h1{margin-top:0}button{background:hsl(92,90%,55%);color:#fff;border:0;border-radius:11px;padding:12px 22px;font-size:16px;cursor:pointer}input{padding:11px;border-radius:10px;border:0;width:70%;font-size:15px}li{text-align:left;margin:6px 0}</style></head><body>
+<div class="box"><h1>My Page</h1><p>This page was made by Ruby AI. It is a real, working starting point — the button counts, the list remembers, and everything below actually does something.</p>
+<p><button id="b">Clicked <b id="n">0</b> times</button></p>
+<h3>📝 Quick notes</h3><p><input id="inp" placeholder="Type a note, press Enter"> </p><ul id="list"></ul>
+<p style="opacity:.8;font-size:13.5px">Edit this file to make it yours — change the title, colours and words.</p></div>
+<script>
+let n=0; document.getElementById('b').onclick=()=>{ document.getElementById('n').textContent=++n; };
+const inp=document.getElementById('inp'), list=document.getElementById('list');
+inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&inp.value.trim()){ const li=document.createElement('li'); li.textContent=inp.value; list.appendChild(li); inp.value=''; } });
+</script></body></html>

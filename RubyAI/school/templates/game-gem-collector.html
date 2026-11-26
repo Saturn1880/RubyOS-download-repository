@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gem Collector</title>
+<style>body{margin:0;background:#0d0d17;color:#fff;font-family:Arial;text-align:center}canvas{background:hsl(77,45%,12%);border:2px solid hsl(77,80%,55%);border-radius:12px;max-width:94vw;touch-action:none}button{background:hsl(77,85%,45%);color:#fff;border:0;border-radius:9px;padding:10px 18px;font-size:15px;cursor:pointer}.hud{font-size:17px;margin:10px}</style></head><body>
+<h1>🎮 Gem Collector</h1><div class="hud">Score: <b id="score">0</b> · Lives: <b id="lives">3</b> · Best: <b id="best">0</b></div>
+<canvas id="cv" width="640" height="420"></canvas>
+<p>Move with ⬅️ ⬆️ ⬇️ ➡️ arrow keys, WASD, or drag on touch screens. Collect the gems 💎, dodge the meteors ☄️. Every 100 points the meteors get faster!</p>
+<p><button id="restart">↻ Restart game</button> <button id="pause">⏸ Pause</button>
+<label>Difficulty <select id="diff"><option value="0.7">Easy</option><option value="1" selected>Normal</option><option value="1.5">Hard</option></select></label></p>
+<div id="touch" style="margin:8px"><button data-k="arrowup">⬆️</button><br><button data-k="arrowleft">⬅️</button> <button data-k="arrowdown">⬇️</button> <button data-k="arrowright">➡️</button></div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let px=300,py=340,score=0,lives=3,run=true,paused=false,t=0,level=1;
+const stars=Array.from({length:60},()=>({x:Math.random()*640,y:Math.random()*420,s:Math.random()*1.8+0.4}));
+const pops=[];
+document.querySelectorAll('#touch button').forEach(b=>{ const k=b.dataset.k; b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;}); b.addEventListener('pointerup',()=>keys[k]=false); b.addEventListener('pointerleave',()=>keys[k]=false); });
+document.getElementById('pause').onclick=e=>{ paused=!paused; e.target.textContent=paused?'▶️ Resume':'⏸ Pause'; };
+let gems=[],rocks=[];
+function spawnGem(){gems.push({x:20+Math.random()*600,y:20+Math.random()*380});}
+function spawnRock(){rocks.push({x:Math.random()*640,y:-20,v:2+Math.random()*2.5});}
+for(let i=0;i<5;i++)spawnGem();
+const keys={}; addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; if(e.key.startsWith('Arrow'))e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let touch=null; cv.addEventListener('pointerdown',e=>touch=e); cv.addEventListener('pointermove',e=>{ if(touch){ const r=cv.getBoundingClientRect(); px=(e.clientX-r.left)*(cv.width/r.width)-16; py=(e.clientY-r.top)*(cv.height/r.height)-16; }});
+cv.addEventListener('pointerup',()=>touch=null);
+function reset(){px=300;py=340;score=0;lives=3;run=true;gems=[];rocks=[];for(let i=0;i<5;i++)spawnGem();document.getElementById('score').textContent=0;document.getElementById('lives').textContent=3;}
+document.getElementById('restart').onclick=reset;
+function loop(){
+ requestAnimationFrame(loop); t++;
+ if(run&&!paused){
+  const sp=4.2;
+  if(keys['arrowleft']||keys['a'])px-=sp; if(keys['arrowright']||keys['d'])px+=sp;
+  if(keys['arrowup']||keys['w'])py-=sp; if(keys['arrowdown']||keys['s'])py+=sp;
+  px=Math.max(0,Math.min(608,px)); py=Math.max(0,Math.min(388,py));
+  if(t%Math.max(26,70-level*5)===0)spawnRock();
+  const df=parseFloat(document.getElementById('diff').value); rocks.forEach(r=>r.y+=r.v*df*(1+(level-1)*0.18)); rocks=rocks.filter(r=>r.y<450);
+  gems=gems.filter(g=>{ const hit=Math.abs(g.x-px-6)<30&&Math.abs(g.y-py-6)<30; if(hit){score+=10;document.getElementById('score').textContent=score;pops.push({x:g.x,y:g.y,txt:'+10',a:1});const nl=Math.floor(score/100)+1; if(nl>level){level=nl;pops.push({x:280,y:190,txt:'LEVEL '+level+'!',a:1});} spawnGem();} return !hit; });
+  rocks=rocks.filter(r=>{ const hit=Math.abs(r.x-px-16)<26&&Math.abs(r.y-py-16)<26; if(hit){lives--;document.getElementById('lives').textContent=lives; if(lives<=0){run=false; const best=Math.max(score,+localStorage.getItem('game-best')||0); localStorage.setItem('game-best',best); document.getElementById('best').textContent=best;}} return !hit; });
+ }
+ document.getElementById('best').textContent=localStorage.getItem('game-best')||0;
+ ctx.clearRect(0,0,640,420); ctx.fillStyle='#ffffff88'; stars.forEach(st=>{ ctx.fillRect(st.x,(st.y+t*0.3)%420,st.s,st.s); });
+ ctx.font='bold 15px Arial'; pops.forEach(pp=>{ ctx.globalAlpha=Math.max(0,pp.a); ctx.fillStyle='#ffd23d'; ctx.fillText(pp.txt,pp.x,pp.y); pp.y-=0.7; pp.a-=0.016; }); ctx.globalAlpha=1; for(let i=pops.length-1;i>=0;i--) if(pops[i].a<=0) pops.splice(i,1);
+ if(paused){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,640,420); ctx.fillStyle='#fff'; ctx.font='bold 30px Arial'; ctx.textAlign='center'; ctx.fillText('⏸ Paused',320,215); ctx.textAlign='left'; }
+ ctx.font='30px serif'; gems.forEach(g=>ctx.fillText('💎',g.x,g.y+24)); rocks.forEach(r=>ctx.fillText('☄️',r.x,r.y+24));
+ ctx.fillStyle='hsl(77,85%,55%)'; ctx.beginPath(); ctx.roundRect(px,py,32,32,9); ctx.fill();
+ ctx.fillStyle='#fff'; ctx.font='bold 15px Arial'; ctx.fillText('◆',px+10,py+21);
+ if(!run){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,640,420); ctx.fillStyle='#fff'; ctx.font='bold 34px Arial'; ctx.textAlign='center'; ctx.fillText('Game over! Score: '+score,320,200); ctx.font='17px Arial'; ctx.fillText('Press Restart to play again',320,232); ctx.textAlign='left'; }
+}
+loop();
+</script></body></html>
