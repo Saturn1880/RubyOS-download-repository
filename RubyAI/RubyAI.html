@@ -38,7 +38,7 @@ textarea{flex:1;background:var(--panel);color:var(--text);border:1px solid var(-
 .switchrow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .zipitem{border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0;cursor:pointer;background:var(--panel)} .zipitem:hover{border-color:var(--r2)} .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
 </style></head><body>
-<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.11 Media Studio</div></div>
+<header><div class="gem">◆</div><div><h1>Ruby <span style="color:#ff2e4d">AI</span></h1><div class="sub">Pure local • No external AI APIs • No pretrained third-party models • Ruby Architecture v1.12 Media Studio</div></div>
 <div style="margin-left:auto"><button class="ghost" onclick="toggleSide()">☰ Memory</button> <button class="ghost" onclick="exportMemory()">Export</button></div></header>
 <div class="layout"><aside id="side">
 <h3>💬 Chats</h3>
@@ -556,7 +556,7 @@ const RubyBrain = {
     // ZIP intent: bundle the last file (or a fresh mini project) into a real .zip
     if(/zip/.test(low) && /(make|create|turn|bundle|download)/.test(low)){
       const lastF = RubyFiles.last();
-      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.11)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
+      const files = lastF && lastF.type!=="zip" ? [{name:lastF.name, content:lastF.content},{name:"README.txt",content:"Made with Ruby AI (Ruby Architecture v1.12)\nFile included: "+lastF.name}] : [{name:"index.html",content:CodeGen.generate("write html code for a website").code},{name:"README.txt",content:"Ruby AI starter project.\nOpen index.html in a browser."}];
       const z = RubyFiles.create("ruby-project.zip","",files);
       return `Done — I bundled ${files.length} file(s) into a real ZIP for you: ruby-project.zip.\n\nClick "See what's inside" on the file card below to look inside it, preview the files in it, or download the whole ZIP.`;
     }
@@ -1179,6 +1179,9 @@ const RubySchool = {
         if (kind==="zip"){ const files=[{name:"index.html",content:RubyApps.starter("My Page")},{name:"notes.txt",content:"Made by Ruby AI.\nThis ZIP was created because you asked for a ZIP — HTML is my default, but the type you name is the type you get."},{name:"data.json",content:JSON.stringify({madeBy:"Ruby AI",type:"zip",files:3},null,2)}]; RubyFiles.create("my-files.zip","",files); return fileReply("my-files.zip","ZIP archive with real files inside"); }
         if (kind==="json"||kind==="xml"||kind==="csv"){ const topic=(t.replace(/.*?(?:about|for|of)\s+/i,"").trim()||"Ruby Data"); const c = kind==="json"? JSON.stringify({topic, madeBy:"Ruby AI", items:[{name:topic+" — item 1", value:1},{name:topic+" — item 2", value:2}]},null,2) : kind==="xml"? `<?xml version="1.0" encoding="UTF-8"?>\n<data topic="${topic.replace(/"/g,"")}"><item id="1">${topic} — item 1</item><item id="2">${topic} — item 2</item></data>` : "name,value\n"+topic+" — item 1,1\n"+topic+" — item 2,2\n"; const fn=RubyApps.slug(topic)+"."+kind; RubyFiles.create(fn, c); return fileReply(fn, kind.toUpperCase()+" file"); }
         if (kind==="txt"||kind==="text"||kind==="md"||kind==="markdown"){ const fn="my-notes."+(kind==="md"||kind==="markdown"?"md":"txt"); RubyFiles.create(fn, "# My notes\n\nMade by Ruby AI. Write anything here."); return fileReply(fn,"text file"); }
+        if (kind==="py"||kind==="python"){ RubyFiles.create("my-script.py", "# Made by Ruby AI\n\nprint(\"Hello from Ruby AI!\")\n\n# Write your Python here.\n"); return fileReply("my-script.py","Python file"); }
+        if (kind==="js"||kind==="javascript"){ RubyFiles.create("my-script.js", "// Made by Ruby AI\n\nconsole.log(\"Hello from Ruby AI!\");\n\n// Write your JavaScript here.\n"); return fileReply("my-script.js","JavaScript file"); }
+        if (kind==="css"){ RubyFiles.create("my-styles.css", "/* Made by Ruby AI */\n\nbody { font-family: Arial, sans-serif; }\n"); return fileReply("my-styles.css","CSS file"); }
         // html file asked by name -> fall through to app building below
       }
       const aboutM = t.match(/(?:about|for|called|named)\s+([A-Za-z0-9 '&-]{2,40})/i);
@@ -1199,6 +1202,8 @@ const RubySchool = {
         return fileReply(fn, "complete web page");
       }
       if (/app\b/.test(low)){ const nm = topic || "My App"; const fn=RubyApps.slug(nm)+".html"; RubyFiles.create(fn, RubyApps.landing(nm)); return fileReply(fn,"complete app page"); }
+      // Wyatt's default rule: any other "make a file / make me a page" ask = an HTML file.
+      { const nm = topic || "My Page"; const fn = RubyApps.slug(nm)+".html"; RubyFiles.create(fn, RubyApps.starter(nm)); return fileReply(fn, "complete HTML page (HTML is my default — name another type, like ZIP or JSON, any time you want that instead)"); }
     }
     const base = origThink(text, lowOrig, plan);
     if (/\bhelp\b|what can you do/.test(low)) return base + "\n\n🏫 **Ruby's Coding School (new):** ask me to *make a desktop like Windows*, *make a game*, *make a website about anything*, *make a calculator / to-do list / paint app / chat app* — I now build the COMPLETE thing as a file (HTML by default; say ZIP/JSON/etc. if you want that instead). Ask *teach me HTML* (or CSS / JavaScript) for a lesson, or *how do you decide* to see how I build.";
