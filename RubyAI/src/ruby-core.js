@@ -1,4 +1,4 @@
-// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.3.html
+// Ruby Architecture v1.14 — core extracted from RubyAI-v1.14.4.html
 
 "use strict";
 /* ============================================================
@@ -1614,5 +1614,56 @@ const RUBY_SORRY = "I'm sorry, I can't help you with that right now — please t
       `That's tough${nm()} 💛 I'm here either way — vent, or let me cheer you up.`]);
     return prevThink(t, low, plan);
   };
+})();
+
+
+
+
+/* ===== v1.14.4: microphone manners (Wyatt's spec) =====
+   1) Sending a message cancels the microphone — back to its default state.
+   2) Permission is asked ONCE per session and then kept: the mic stream is
+      held open (never stopped) so Chrome doesn't keep re-asking. */
+(function(){
+  if (typeof RubyVoice === "undefined") return;
+  RubyVoice._permStream = null;
+  RubyVoice._permAsked = false;
+  RubyVoice.ensurePermission = function(){
+    if (this._permAsked) return;
+    this._permAsked = true;
+    const hold = (stream)=>{ this._permStream = stream; /* held for the whole session on purpose */ };
+    try{
+      if (navigator.permissions && navigator.permissions.query){
+        navigator.permissions.query({name:"microphone"}).then(st=>{
+          if (st.state === "granted") return; // already granted — never ask again
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+            navigator.mediaDevices.getUserMedia({audio:true}).then(hold).catch(()=>{});
+        }).catch(()=>{
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+            navigator.mediaDevices.getUserMedia({audio:true}).then(hold).catch(()=>{});
+        });
+      } else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        navigator.mediaDevices.getUserMedia({audio:true}).then(hold).catch(()=>{});
+      }
+    }catch(e){}
+  };
+  const prevStart = RubyVoice.start.bind(RubyVoice);
+  RubyVoice.start = function(){ this.ensurePermission(); prevStart(); };
+  RubyVoice.cancel = function(){
+    if (this.rec){ try{ this.rec.stop(); }catch(e){} try{ this.rec.abort && this.rec.abort(); }catch(e){} }
+    this.listening = false; this.setUI(false);
+    /* NOTE: the permission stream is deliberately NOT stopped — it stays
+       held so the browser keeps the permission for the whole session. */
+  };
+  const prevStop = RubyVoice.stop.bind(RubyVoice);
+  RubyVoice.stop = function(){ prevStop(); this.setUI(false); };
+  // Sending always cancels the mic first.
+  const prevSend = window.send;
+  if (typeof prevSend === "function"){
+    window.send = function(){ try{ RubyVoice.cancel(); }catch(e){} return prevSend.apply(this, arguments); };
+  }
+  if (typeof window.runRubyTurn === "function"){
+    const prevTurn = window.runRubyTurn;
+    window.runRubyTurn = function(){ try{ RubyVoice.cancel(); }catch(e){} return prevTurn.apply(this, arguments); };
+  }
 })();
 
